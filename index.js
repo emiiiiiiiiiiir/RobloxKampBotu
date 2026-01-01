@@ -583,6 +583,33 @@ const commands = [
     ),
   
   new SlashCommandBuilder()
+    .setName('branştan-at')
+    .setDescription('Kullanıcıyı belirtilen branş grubundan atar')
+    .addStringOption(option =>
+      option.setName('kişi')
+        .setDescription('Gruptan atılacak kişinin Roblox kullanıcı adı')
+        .setRequired(true)
+    )
+    .addStringOption(option =>
+      option.setName('branş')
+        .setDescription('Branş grubu')
+        .setRequired(true)
+        .addChoices(
+          { name: 'DKK', value: 'DKK' },
+          { name: 'KKK', value: 'KKK' },
+          { name: 'ÖKK', value: 'ÖKK' },
+          { name: 'JGK', value: 'JGK' },
+          { name: 'AS.İZ', value: 'AS.İZ' },
+          { name: 'HKK', value: 'HKK' }
+        )
+    )
+    .addStringOption(option =>
+      option.setName('sebep')
+        .setDescription('Atılma sebebi')
+        .setRequired(true)
+    ),
+
+  new SlashCommandBuilder()
     .setName('ticket-setup')
     .setDescription('Destek sistemi mesajını gönderir')
 ].map(command => command.toJSON());
@@ -675,6 +702,9 @@ client.on('interactionCreate', async (interaction) => {
           break;
         case 'branş-rütbe-değiştir':
           await handleBranchRankChange(interaction);
+          break;
+        case 'branştan-at':
+          await handleBranchKick(interaction);
           break;
         case 'duyuru':
           await handleAnnouncement(interaction);
@@ -1528,6 +1558,42 @@ async function handleRobloxChange(interaction) {
     .setTimestamp();
   
   return interaction.editReply({ embeds: [verificationEmbed] });
+}
+
+async function handleBranchKick(interaction) {
+  await interaction.deferReply();
+  
+  const robloxNick = interaction.options.getString('kişi');
+  const branch = interaction.options.getString('branş');
+  const reason = interaction.options.getString('sebep');
+  
+  const groupId = config.branchGroups[branch];
+  if (!groupId || groupId === 'GRUP_ID_BURAYA') {
+    return interaction.editReply({ embeds: [createErrorEmbed(`${branch} branşı için grup ID tanımlanmamış!`)] });
+  }
+
+  // Yetki kontrolü
+  const managerRank = await robloxAPI.getUserRankInGroup(await robloxAPI.getUserIdByUsername(getLinkedRobloxUsername(interaction.user.id)), groupId);
+  if (!managerRank || !config.branchManagerRanks.includes(managerRank.rank)) {
+    return interaction.editReply({ embeds: [createErrorEmbed(`Bu branşta yönetici yetkiniz yok!`)] });
+  }
+
+  const userId = await robloxAPI.getUserIdByUsername(robloxNick);
+  if (!userId) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Roblox kullanıcısı bulunamadı!')] });
+  }
+
+  const result = await robloxAPI.banUserFromGroup(userId, groupId, ROBLOX_COOKIE);
+  
+  if (result) {
+    const embed = new EmbedBuilder()
+      .setDescription(`İşlem başarıyla tamamlandı\n\n**${robloxNick}** kullanıcısı **${branch}** branşından başarıyla atıldı.\n\n**Sebep**\n${reason}`)
+      .setColor(0x57F287);
+    
+    await interaction.editReply({ embeds: [embed] });
+  } else {
+    await interaction.editReply({ embeds: [createErrorEmbed('Kullanıcı branştan atılamadı!')] });
+  }
 }
 
 async function handleAnnouncement(interaction) {
