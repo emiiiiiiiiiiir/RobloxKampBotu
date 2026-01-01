@@ -824,8 +824,8 @@ async function checkRankPermissions(discordUserId, targetRank) {
 }
 
 async function handleRankQuery(interaction) {
-  if (!interaction.guild.name.includes('ATF')) {
-    return interaction.reply({ content: 'HATA: Bu komut sadece |ATF| Turkish Armed Forces\'a bağlı sunucularda kullanılabilir.', ephemeral: true });
+  if (!interaction.guild.name.includes('AEK')) {
+    return interaction.reply({ content: 'HATA: Bu komut sadece |AEK| Turkish Armed Forces\'a bağlı sunucularda kullanılabilir.', ephemeral: true });
   }
   
   await interaction.deferReply();
@@ -860,8 +860,8 @@ async function handleRankQuery(interaction) {
 }
 
 async function handleRankChange(interaction) {
-  if (!interaction.guild.name.includes('ATF')) {
-    return interaction.reply({ content: 'HATA: Bu komut sadece |ATF| Turkish Armed Forces\'a bağlı sunucularda kullanılabilir.', ephemeral: true });
+  if (!interaction.guild.name.includes('AEK')) {
+    return interaction.reply({ content: 'HATA: Bu komut sadece |AEK| Turkish Armed Forces\'a bağlı sunucularda kullanılabilir.', ephemeral: true });
   }
   
   await interaction.deferReply();
@@ -922,8 +922,8 @@ async function handleRankChange(interaction) {
 }
 
 async function handleRankPromotion(interaction) {
-  if (!interaction.guild.name.includes('ATF')) {
-    return interaction.reply({ content: 'HATA: Bu komut sadece |ATF| Turkish Armed Forces\'a bağlı sunucularda kullanılabilir.', ephemeral: true });
+  if (!interaction.guild.name.includes('AEK')) {
+    return interaction.reply({ content: 'HATA: Bu komut sadece |AEK| Turkish Armed Forces\'a bağlı sunucularda kullanılabilir.', ephemeral: true });
   }
   
   await interaction.deferReply();
@@ -988,8 +988,8 @@ async function handleRankPromotion(interaction) {
 }
 
 async function handleRankDemotion(interaction) {
-  if (!interaction.guild.name.includes('ATF')) {
-    return interaction.reply({ content: 'HATA: Bu komut sadece |ATF| Turkish Armed Forces\'a bağlı sunucularda kullanılabilir.', ephemeral: true });
+  if (!interaction.guild.name.includes('AEK')) {
+    return interaction.reply({ content: 'HATA: Bu komut sadece |AEK| Turkish Armed Forces\'a bağlı sunucularda kullanılabilir.', ephemeral: true });
   }
   
   await interaction.deferReply();
@@ -1131,7 +1131,7 @@ async function handleUnban(interaction) {
       }
     }
     
-    let description = `İşlem başarıyla tamamlandı\n\n<@${discordUserId}> Kişisinin ATF sunucularından yasaklamaları başarıyla kaldırıldı.\n\n**Sebep**\n${reason}\n\n`;
+    let description = `İşlem başarıyla tamamlandı\n\n<@${discordUserId}> Kişisinin AEK sunucularından yasaklamaları başarıyla kaldırıldı.\n\n**Sebep**\n${reason}\n\n`;
     
     if (successGuilds.length > 0) {
       description += `**Yasağın kaldırıldığı sunucular:**\n${successGuilds.map(name => `• | ${name}`).join('\n')}\n\n`;
@@ -1201,8 +1201,8 @@ async function handleGroupList(interaction) {
 }
 
 async function handleBranchRankChange(interaction) {
-  if (!interaction.guild.name.includes('ATF')) {
-    return interaction.reply({ content: 'HATA: Bu komut sadece |ATF| Turkish Armed Forces\'a bağlı sunucularda kullanılabilir.', ephemeral: true });
+  if (!interaction.guild.name.includes('AEK')) {
+    return interaction.reply({ content: 'HATA: Bu komut sadece |AEK| Turkish Armed Forces\'a bağlı sunucularda kullanılabilir.', ephemeral: true });
   }
   
   await interaction.deferReply();
@@ -1287,8 +1287,8 @@ async function handleBranchRankChange(interaction) {
 }
 
 async function handleBranchRequest(interaction) {
-  if (!interaction.guild.name.includes('ATF')) {
-    return interaction.reply({ content: 'HATA: Bu komut sadece |ATF| Turkish Armed Forces\'a bağlı sunucularda kullanılabilir.', ephemeral: true });
+  if (!interaction.guild.name.includes('AEK')) {
+    return interaction.reply({ content: 'HATA: Bu komut sadece |AEK| Turkish Armed Forces\'a bağlı sunucularda kullanılabilir.', ephemeral: true });
   }
   
   await interaction.deferReply();
