@@ -1685,7 +1685,7 @@ async function handleTicketSetup(interaction) {
   await interaction.deferReply({ ephemeral: true });
   
   if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
-    return interaction.editReply('Bu komutu kullanmak için yönetici yetkisine sahip olmalısınız!');
+    return interaction.editReply({ embeds: [createErrorEmbed('Bu komutu kullanmak için yönetici yetkisine sahip olmalısınız!')] });
   }
   
   const { AttachmentBuilder } = require('discord.js');
@@ -1713,7 +1713,12 @@ async function handleTicketSetup(interaction) {
   messageOptions.components = [row];
   
   await interaction.channel.send(messageOptions);
-  await interaction.editReply('Destek sistemi mesajı başarıyla gönderildi!');
+  
+  const successEmbed = new EmbedBuilder()
+    .setDescription('Destek sistemi mesajı başarıyla gönderildi!')
+    .setColor(0x57F287);
+    
+  await interaction.editReply({ embeds: [successEmbed] });
 }
 
 async function handleTicketMenuButton(interaction) {
