@@ -584,24 +584,11 @@ const commands = [
   
   new SlashCommandBuilder()
     .setName('branştan-at')
-    .setDescription('Kullanıcıyı belirtilen branş grubundan atar')
+    .setDescription('Kullanıcıyı bulunduğu branş grubundan atar')
     .addStringOption(option =>
       option.setName('kişi')
         .setDescription('Gruptan atılacak kişinin Roblox kullanıcı adı')
         .setRequired(true)
-    )
-    .addStringOption(option =>
-      option.setName('branş')
-        .setDescription('Branş grubu')
-        .setRequired(true)
-        .addChoices(
-          { name: 'DKK', value: 'DKK' },
-          { name: 'KKK', value: 'KKK' },
-          { name: 'ÖKK', value: 'ÖKK' },
-          { name: 'JGK', value: 'JGK' },
-          { name: 'AS.İZ', value: 'AS.İZ' },
-          { name: 'HKK', value: 'HKK' }
-        )
     )
     .addStringOption(option =>
       option.setName('sebep')
@@ -1564,35 +1551,67 @@ async function handleBranchKick(interaction) {
   await interaction.deferReply();
   
   const robloxNick = interaction.options.getString('kişi');
-  const branch = interaction.options.getString('branş');
   const reason = interaction.options.getString('sebep');
   
-  const groupId = config.branchGroups[branch];
-  if (!groupId || groupId === 'GRUP_ID_BURAYA') {
-    return interaction.editReply({ embeds: [createErrorEmbed(`${branch} branşı için grup ID tanımlanmamış!`)] });
+  // İşlemi yapan kişinin Roblox ID'sini ve branşlarını al
+  const managerDiscordId = interaction.user.id;
+  const managerRobloxName = getLinkedRobloxUsername(managerDiscordId);
+  
+  if (!managerRobloxName) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Roblox hesabınız bağlı değil! Önce `/roblox-bağla` komutunu kullanın.')] });
+  }
+  
+  const managerRobloxId = await robloxAPI.getUserIdByUsername(managerRobloxName);
+  if (!managerRobloxId) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Roblox bilgileriniz alınamadı!')] });
   }
 
-  // Yetki kontrolü
-  const managerRank = await robloxAPI.getUserRankInGroup(await robloxAPI.getUserIdByUsername(getLinkedRobloxUsername(interaction.user.id)), groupId);
-  if (!managerRank || !config.branchManagerRanks.includes(managerRank.rank)) {
-    return interaction.editReply({ embeds: [createErrorEmbed(`Bu branşta yönetici yetkiniz yok!`)] });
+  const managerGroups = await robloxAPI.getUserGroups(managerRobloxId);
+  if (!managerGroups) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Gruplarınız listelenirken bir hata oluştu!')] });
+  }
+
+  // İşlemi yapan kişinin hangi branşlarda şef/yardımcı olduğunu bul
+  const branchEntries = Object.entries(config.branchGroups);
+  let targetBranchName = null;
+  let targetGroupId = null;
+
+  for (const [branchName, groupId] of branchEntries) {
+    if (!groupId || groupId === 'GRUP_ID_BURAYA') continue;
+    
+    const groupInfo = managerGroups.find(g => g.groupId === parseInt(groupId));
+    if (groupInfo && config.branchManagerRanks.includes(groupInfo.rank)) {
+      targetBranchName = branchName;
+      targetGroupId = groupId;
+      break; // İlk bulduğu yetkili olduğu branşı hedef alır
+    }
+  }
+
+  if (!targetGroupId) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Bu işlemi yapmak için herhangi bir branşta şef veya şef yardımcısı yetkiniz bulunmuyor!')] });
   }
 
   const userId = await robloxAPI.getUserIdByUsername(robloxNick);
   if (!userId) {
-    return interaction.editReply({ embeds: [createErrorEmbed('Roblox kullanıcısı bulunamadı!')] });
+    return interaction.editReply({ embeds: [createErrorEmbed('Atılacak Roblox kullanıcısı bulunamadı!')] });
   }
 
-  const result = await robloxAPI.banUserFromGroup(userId, groupId, ROBLOX_COOKIE);
+  // Hedef kullanıcının grupta olup olmadığını kontrol et
+  const targetUserRank = await robloxAPI.getUserRankInGroup(userId, targetGroupId);
+  if (!targetUserRank || targetUserRank.rank === 0) {
+    return interaction.editReply({ embeds: [createErrorEmbed(`Hedef kullanıcı **${targetBranchName}** branşında değil!`)] });
+  }
+
+  const result = await robloxAPI.banUserFromGroup(userId, targetGroupId, ROBLOX_COOKIE);
   
   if (result) {
     const embed = new EmbedBuilder()
-      .setDescription(`İşlem başarıyla tamamlandı\n\n**${robloxNick}** kullanıcısı **${branch}** branşından başarıyla atıldı.\n\n**Sebep**\n${reason}`)
+      .setDescription(`İşlem başarıyla tamamlandı\n\n**${robloxNick}** kullanıcısı, yetkili olduğunuz **${targetBranchName}** branşından başarıyla atıldı.\n\n**Sebep**\n${reason}`)
       .setColor(0x57F287);
     
     await interaction.editReply({ embeds: [embed] });
   } else {
-    await interaction.editReply({ embeds: [createErrorEmbed('Kullanıcı branştan atılamadı!')] });
+    await interaction.editReply({ embeds: [createErrorEmbed('Kullanıcı branştan atılamadı! Yetkiniz yetersiz olabilir veya bir hata oluştu.')] });
   }
 }
 
