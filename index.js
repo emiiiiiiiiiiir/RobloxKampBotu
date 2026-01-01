@@ -1807,32 +1807,48 @@ async function handleTicketCategorySelect(interaction) {
       }
     }
     
+    const permissionOverwrites = [
+      {
+        id: interaction.guild.id,
+        deny: [PermissionFlagsBits.ViewChannel]
+      },
+      {
+        id: userId,
+        allow: [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.ReadMessageHistory
+        ]
+      }
+    ];
+
+    // Config'deki destek rollerini güvenli bir şekilde ekle
+    if (config.supportRoleIds && Array.isArray(config.supportRoleIds)) {
+      config.supportRoleIds.forEach(idStr => {
+        if (idStr && typeof idStr === 'string') {
+          // "id1, id2" gibi virgüllü formatı temizle
+          const ids = idStr.split(',').map(s => s.trim());
+          ids.forEach(id => {
+            if (id && /^\d+$/.test(id)) { // Sadece rakamlardan oluşan ID'leri ekle
+              permissionOverwrites.push({
+                id: id,
+                allow: [
+                  PermissionFlagsBits.ViewChannel,
+                  PermissionFlagsBits.SendMessages,
+                  PermissionFlagsBits.ReadMessageHistory
+                ]
+              });
+            }
+          });
+        }
+      });
+    }
+
     const ticketChannel = await interaction.guild.channels.create({
       name: channelName,
       type: ChannelType.GuildText,
       parent: parentId,
-      permissionOverwrites: [
-        {
-          id: interaction.guild.id,
-          deny: [PermissionFlagsBits.ViewChannel]
-        },
-        {
-          id: userId,
-          allow: [
-            PermissionFlagsBits.ViewChannel,
-            PermissionFlagsBits.SendMessages,
-            PermissionFlagsBits.ReadMessageHistory
-          ]
-        },
-        ...config.supportRoleIds.map(roleId => ({
-          id: roleId,
-          allow: [
-            PermissionFlagsBits.ViewChannel,
-            PermissionFlagsBits.SendMessages,
-            PermissionFlagsBits.ReadMessageHistory
-          ]
-        }))
-      ]
+      permissionOverwrites: permissionOverwrites
     });
     
     const welcomeEmbed = new EmbedBuilder()
@@ -1855,8 +1871,15 @@ async function handleTicketCategorySelect(interaction) {
     
     const row = new ActionRowBuilder().addComponents(closeButton, claimButton);
     
+    const supportMention = config.supportRoleIds && Array.isArray(config.supportRoleIds) 
+      ? config.supportRoleIds.map(idStr => {
+          const ids = idStr.split(',').map(s => s.trim());
+          return ids.filter(id => /^\d+$/.test(id)).map(id => `<@&${id}>`).join(' ');
+        }).join(' ')
+      : '';
+
     await ticketChannel.send({ 
-      content: `${interaction.user} ${config.supportRoleIds.map(id => `<@&${id}>`).join(' ')}`,
+      content: `${interaction.user} ${supportMention}`,
       embeds: [welcomeEmbed],
       components: [row]
     });
