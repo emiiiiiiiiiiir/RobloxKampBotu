@@ -1,22 +1,22 @@
 {
-  "groupId": "32045279",
-  "gameId": "14010229245",
+  "groupId": "10919576",
+  "gameId": "92340809504354",
   "adminRoleIds": ["1450239609643470861"],
   "allowedRanks": [253, 254, 255],
   "maxRankCanAssign": 250,
   "branchGroups": {
-    "DKK": "190591764",
-    "KKK": "992668854",
-    "ÖKK": "705479624",
-    "JGK": "1085955086",
-    "AS.İZ": "438092807",
-    "HKK": "583598882"
+    "DKK": "",
+    "KKK": "",
+    "ÖKK": "",
+    "JGK": "",
+    "AS.İZ": "",
+    "HKK": ""
   },
   "branchManagerRanks": [254, 255],
-  "webhookUrl": "https://discord.com/api/webhooks/1450552525320097973/7LMDDzsRwP0k1yAOWzeY-PbKoK_-HxUw2Y0AtXrE1Oz05hg_OQKa7CWuA9u4Ktl7iAMy",
-  "branchWebhookUrl": "https://discord.com/api/webhooks/1450553436931231755/hg0rxJQsbSdu1y8GY8RIZZJSuwbBRI76Q1ReQLdqEr2AQGqIkce89N1AMbnnnka3bwzS",
-  "ticketCategoryId": "1450545317421518939",
-  "ticketLogChannelId": "1450545489580658709",
-  "supportRoleIds": ["1450546612484178061"],
-  "ticketImageUrl": ""
+  "webhookUrl": "https://discord.com/api/webhooks/1438698267071221801/wtiP-fo8ttaY1gwesfkNtsTiHKplddM34_rTyiiuO5TPeC52A8GXldRDkRDV1jIP7914",
+  "branchWebhookUrl": "https://discord.com/api/webhooks/1438701679150108672/4XnwSUPcBEZr3pc8Y1GHVsz2ddTxsnMEws_swUxFSb2v46-BPDRZe5TMqXEVvGmUqnXD",
+  "ticketCategoryId": "1439347320792682526",
+  "ticketLogChannelId": "1404513603767500910",
+  "supportRoleIds": ["1430254758110826547, 1420425067212574720"],
+  "ticketImageUrl": "https://cdn.discordapp.com/attachments/1345716995794010162/1439373611826810972/9C6DAB24-1D46-41FA-AA1C-F4231218F234.jpg?ex=691a48a3&is=6918f723&hm=a6a30f65cf716f8fb069eb7c5730d4a3fae86a97a1c4cf06ff4b1f1a8d598883&"
 }
