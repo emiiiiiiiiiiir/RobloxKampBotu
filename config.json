@@ -5,12 +5,12 @@
   "allowedRanks": [36, 37, 38, 39],
   "maxRankCanAssign": 250,
   "branchGroups": {
-    "DKK": "",
+    "DKK": "312435226",
     "KKK": "40576735",
-    "ÖKK": "",
-    "JGK": "",
-    "AS.İZ": "",
-    "HKK": ""
+    "ÖKK": "648294874",
+    "JGK": "639306364",
+    "AS.İZ": "737112873",
+    "HKK": "389853077"
   },
   "branchManagerRanks": [254, 255],
   "webhookUrl": "https://discord.com/api/webhooks/1438698267071221801/wtiP-fo8ttaY1gwesfkNtsTiHKplddM34_rTyiiuO5TPeC52A8GXldRDkRDV1jIP7914",
