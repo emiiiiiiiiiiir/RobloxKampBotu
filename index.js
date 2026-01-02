@@ -1680,11 +1680,13 @@ async function handleDemote(interaction) {
 
   // Tüm branş gruplarından at
   for (const [branchName, groupId] of Object.entries(config.branchGroups)) {
-    if (groupId && groupId !== 'GRUP_ID_BURAYA') {
+    if (groupId && groupId !== 'GRUP_ID_BURAYA' && groupId !== '') {
       const isMember = await robloxAPI.getUserRankInGroup(userId, groupId);
       if (isMember && isMember.rank > 0) {
         const kickResult = await robloxAPI.banUserFromGroup(userId, groupId, ROBLOX_COOKIE);
-        if (kickResult) results.branches.push(branchName);
+        if (kickResult) {
+          results.branches.push(branchName);
+        }
       }
     }
   }
