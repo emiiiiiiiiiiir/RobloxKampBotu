@@ -564,6 +564,20 @@ const commands = [
     ),
   
   new SlashCommandBuilder()
+    .setName('demote')
+    .setDescription('Kullanıcının rütbesini 1 yapar ve tüm branş gruplarından atar')
+    .addStringOption(option =>
+      option.setName('kişi')
+        .setDescription('İşlem yapılacak kişinin Roblox kullanıcı adı')
+        .setRequired(true)
+    )
+    .addStringOption(option =>
+      option.setName('sebep')
+        .setDescription('İşlem sebebi')
+        .setRequired(true)
+    ),
+
+  new SlashCommandBuilder()
     .setName('duyuru')
     .setDescription('Botun bulunduğu tüm sunuculara duyuru yapar')
     .addStringOption(option =>
@@ -692,6 +706,9 @@ client.on('interactionCreate', async (interaction) => {
           break;
         case 'branştan-at':
           await handleBranchKick(interaction);
+          break;
+        case 'demote':
+          await handleDemote(interaction);
           break;
         case 'duyuru':
           await handleAnnouncement(interaction);
@@ -1612,6 +1629,97 @@ async function handleBranchKick(interaction) {
     await interaction.editReply({ embeds: [embed] });
   } else {
     await interaction.editReply({ embeds: [createErrorEmbed('Kullanıcı branştan atılamadı! Yetkiniz yetersiz olabilir veya bir hata oluştu.')] });
+  }
+}
+
+async function handleDemote(interaction) {
+  await interaction.deferReply();
+  
+  const robloxNick = interaction.options.getString('kişi');
+  const reason = interaction.options.getString('sebep');
+  
+  // Yetki kontrolü (36, 37, 38 rütbeler)
+  const managerRobloxName = getLinkedRobloxUsername(interaction.user.id);
+  if (!managerRobloxName) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Roblox hesabınız bağlı değil!')] });
+  }
+  
+  const managerRobloxId = await robloxAPI.getUserIdByUsername(managerRobloxName);
+  const managerRank = await robloxAPI.getUserRankInGroup(managerRobloxId, config.groupId);
+  
+  const allowedManagerRanks = [36, 37, 38, 255]; // 255 (sahip) her zaman yetkilidir
+  if (!managerRank || !allowedManagerRanks.includes(managerRank.rank)) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Bu komutu kullanmak için rütbeniz yetersiz!')] });
+  }
+
+  const userId = await robloxAPI.getUserIdByUsername(robloxNick);
+  if (!userId) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Roblox kullanıcısı bulunamadı!')] });
+  }
+
+  const currentRank = await robloxAPI.getUserRankInGroup(userId, config.groupId);
+  if (!currentRank) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Kullanıcı grupta değil!')] });
+  }
+
+  // Rütbe 1 (Or-1) ID'sini bul
+  const roles = await robloxAPI.getGroupRoles(config.groupId);
+  const targetRole = roles.find(r => r.rank === 1);
+  
+  if (!targetRole) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Hedef rütbe (Rank 1) bulunamadı!')] });
+  }
+
+  // Ana grupta rütbeyi 1 yap
+  const rankResult = await robloxAPI.setUserRole(userId, config.groupId, targetRole.id, ROBLOX_COOKIE);
+  
+  const results = {
+    mainGroup: !rankResult.error,
+    branches: []
+  };
+
+  // Tüm branş gruplarından at
+  for (const [branchName, groupId] of Object.entries(config.branchGroups)) {
+    if (groupId && groupId !== 'GRUP_ID_BURAYA') {
+      const isMember = await robloxAPI.getUserRankInGroup(userId, groupId);
+      if (isMember && isMember.rank > 0) {
+        const kickResult = await robloxAPI.banUserFromGroup(userId, groupId, ROBLOX_COOKIE);
+        if (kickResult) results.branches.push(branchName);
+      }
+    }
+  }
+
+  if (results.mainGroup) {
+    let description = `**${robloxNick}** kullanıcısının rütbesi başarıyla **${targetRole.name} (1)** yapıldı.`;
+    
+    if (results.branches.length > 0) {
+      description += `\n\n**Şu branşlardan atıldı:**\n${results.branches.map(b => `• | ${b}`).join('\n')}`;
+    } else {
+      description += `\n\nKullanıcı herhangi bir branş grubunda bulunamadı.`;
+    }
+    
+    description += `\n\n**Sebep**\n${reason}`;
+
+    const embed = new EmbedBuilder()
+      .setTitle('Kullanıcı Demote Edildi')
+      .setDescription(description)
+      .setColor(0xED4245)
+      .setTimestamp();
+    
+    await interaction.editReply({ embeds: [embed] });
+    
+    // Webhook gönder
+    await sendRankChangeWebhook({
+      type: 'demotion',
+      targetUser: robloxNick,
+      manager: managerRobloxName,
+      managerRank: managerRank.name,
+      oldRank: `${currentRank.name} (${currentRank.rank})`,
+      newRank: `${targetRole.name} (1)`,
+      reason: reason
+    });
+  } else {
+    await interaction.editReply({ embeds: [createErrorEmbed('Rütbe düşürme işlemi sırasında bir hata oluştu!')] });
   }
 }
 
