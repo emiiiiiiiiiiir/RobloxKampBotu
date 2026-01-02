@@ -1072,7 +1072,7 @@ async function handleRankDemotion(interaction) {
 
 async function handleBan(interaction) {
   if (!interaction.member.roles.cache.some(role => config.adminRoleIds.includes(role.id))) {
-    return interaction.reply({ content: 'HATA: Bu komutu kullanma yetkiniz yok!', ephemeral: true });
+    return interaction.reply({ embeds: [createErrorEmbed('Bu komutu kullanma yetkiniz yok!')], ephemeral: true });
   }
   
   await interaction.deferReply();
@@ -1124,7 +1124,7 @@ async function handleBan(interaction) {
 
 async function handleUnban(interaction) {
   if (!interaction.member.roles.cache.some(role => config.adminRoleIds.includes(role.id))) {
-    return interaction.reply({ content: 'HATA: Bu komutu kullanma yetkiniz yok!', ephemeral: true });
+    return interaction.reply({ embeds: [createErrorEmbed('Bu komutu kullanma yetkiniz yok!')], ephemeral: true });
   }
   
   await interaction.deferReply();
