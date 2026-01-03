@@ -15,6 +15,7 @@
     "axios": "^1.12.2",
     "discord-api-types": "^0.38.29",
     "discord.js": "^14.23.2",
+    "express": "^5.2.1",
     "ffmpeg-static": "^5.2.0",
     "libsodium-wrappers": "^0.7.15"
   }

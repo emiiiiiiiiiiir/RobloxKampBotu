@@ -1754,11 +1754,93 @@ async function handleDemote(interaction) {
   }
 }
 
+const express = require('express');
+const app = express();
+const PORT = 3000;
+
+const GAME_BANS_FILE = './data/game_bans.json';
+
+function loadGameBans() {
+  try {
+    if (fs.existsSync(GAME_BANS_FILE)) {
+      const data = fs.readFileSync(GAME_BANS_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Ban listesi yüklenirken hata:', error.message);
+  }
+  return {};
+}
+
+function saveGameBans(bans) {
+  try {
+    if (!fs.existsSync('./data')) fs.mkdirSync('./data');
+    fs.writeFileSync(GAME_BANS_FILE, JSON.stringify(bans, null, 2), 'utf8');
+    return true;
+  } catch (error) {
+    console.error('Ban listesi kaydedilirken hata:', error);
+    return false;
+  }
+}
+
+// Roblox API için endpoint
+app.get('/check-ban/:userId', (req, res) => {
+  const userId = req.params.userId;
+  const bans = loadGameBans();
+  
+  if (bans[userId]) {
+    res.json({ banned: true, reason: bans[userId].reason });
+  } else {
+    res.json({ banned: false });
+  }
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✓ Roblox API sunucusu port ${PORT} üzerinde çalışıyor`);
+});
+
 async function handleGameBan(interaction) {
-  return interaction.reply({ 
-    embeds: [createErrorEmbed('Bu komut şu an geliştirme aşamasındadır.')], 
-    ephemeral: true 
-  });
+  await interaction.deferReply();
+  
+  // Yetki kontrolü (36, 37, 38 rütbeler)
+  const managerRobloxName = getLinkedRobloxUsername(interaction.user.id);
+  if (!managerRobloxName) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Roblox hesabınız bağlı değil!')] });
+  }
+  
+  const managerRobloxId = await robloxAPI.getUserIdByUsername(managerRobloxName);
+  const managerRank = await robloxAPI.getUserRankInGroup(managerRobloxId, config.groupId);
+  
+  const allowedManagerRanks = [36, 37, 38, 255]; 
+  if (!managerRank || !allowedManagerRanks.includes(managerRank.rank)) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Bu komutu kullanmak için rütbeniz yetersiz!')] });
+  }
+
+  const robloxNick = interaction.options.getString('kişi');
+  const reason = interaction.options.getString('sebep');
+  
+  const userId = await robloxAPI.getUserIdByUsername(robloxNick);
+  if (!userId) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Roblox kullanıcısı bulunamadı!')] });
+  }
+
+  // Listeye ekle
+  const bans = loadGameBans();
+  bans[userId] = {
+    username: robloxNick,
+    reason: reason,
+    timestamp: new Date().toISOString(),
+    manager: managerRobloxName
+  };
+  saveGameBans(bans);
+
+  const embed = new EmbedBuilder()
+    .setTitle('Kullanıcı Yasaklandı (DataStore)')
+    .setDescription(`**${robloxNick}** (${userId}) kullanıcısı başarıyla yasaklılar listesine eklendi.\n\n**Önemli:** Yasaklamanın aktif olması için Roblox Studio'daki scripti kurmuş olmanız gerekir.\n\n**Sebep**\n${reason}`)
+    .setColor(0xED4245)
+    .setTimestamp();
+  
+  await interaction.editReply({ embeds: [embed] });
 }
 
 async function handleAnnouncement(interaction) {
