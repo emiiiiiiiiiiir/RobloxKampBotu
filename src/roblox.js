@@ -334,28 +334,60 @@ class RobloxAPI {
         throw new Error('CSRF token alinamadi');
       }
 
-      // Cloud V2 API (En modern ve yetki konusunda en acikleyici olan)
-      const response = await axios.post(
-        `https://apis.roblox.com/cloud/v2/universes/${universeId}/user-restrictions/${userId}:restrict`,
-        {
-          gameJoinRestriction: {
-            active: true,
+      // 404 hatasını önlemek için hem Cloud V2 hem de Legacy v1 endpoint'lerini daha esnek bir yapıda dene
+      let lastError;
+      
+      // Deneme 1: Cloud V2 (Modern Standard)
+      try {
+        const response = await axios.post(
+          `https://apis.roblox.com/cloud/v2/universes/${universeId}/user-restrictions/${userId}:restrict`,
+          {
+            gameJoinRestriction: {
+              active: true,
+              reason: reason,
+              displayReason: reason,
+              duration: null
+            }
+          },
+          {
+            headers: {
+              'Cookie': `.ROBLOSECURITY=${process.env.ROBLOX_COOKIE}`,
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': csrfToken
+            }
+          }
+        );
+        console.log('[banUserFromGame] Cloud V2 Basarili');
+        return { success: true };
+      } catch (err) {
+        lastError = err;
+        console.warn('[banUserFromGame] Cloud V2 basarisiz, Legacy deneniyor...');
+      }
+
+      // Deneme 2: Legacy v1 (Eski ama bazi oyunlarda daha kararlı)
+      try {
+        const response = await axios.post(
+          `https://apis.roblox.com/game-auth/v1/games/${universeId}/bans/user/${userId}`,
+          {
             reason: reason,
             displayReason: reason,
-            duration: null // Kalici
+            duration: 0
+          },
+          {
+            headers: {
+              'Cookie': `.ROBLOSECURITY=${process.env.ROBLOX_COOKIE}`,
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': csrfToken
+            }
           }
-        },
-        {
-          headers: {
-            'Cookie': `.ROBLOSECURITY=${process.env.ROBLOX_COOKIE}`,
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': csrfToken
-          }
-        }
-      );
-      
-      console.log('[banUserFromGame] Cloud V2 Basarili:', JSON.stringify(response.data));
-      return { success: true };
+        );
+        console.log('[banUserFromGame] Legacy API Basarili');
+        return { success: true };
+      } catch (err) {
+        lastError = err;
+      }
+
+      throw lastError;
     } catch (error) {
       const errorData = error.response?.data;
       const statusCode = error.response?.status;
@@ -363,18 +395,14 @@ class RobloxAPI {
       console.error(`[banUserFromGame] Hata - Status: ${statusCode}`, JSON.stringify(errorData || error.message));
       
       if (statusCode === 403) {
-        return { success: false, error: 'Roblox API yetkisi reddetti (403 Forbidden). Lütfen botun rütbesinin en yüksek olduğundan ve Ban yetkisine sahip olduğundan emin olun.' };
+        return { success: false, error: 'Roblox API yetkisi reddetti (403). Botun oyun/grup yetkilerini kontrol edin.' };
       }
       
       if (statusCode === 404) {
-        return { success: false, error: 'Oyun veya kullanıcı bulunamadı (404 Not Found).' };
+        return { success: false, error: 'Oyun bulunamadı (404). Config\'deki gameId\'nin doğruluğundan emin olun.' };
       }
 
-      if (errorData?.errors && errorData.errors.length > 0) {
-        return { success: false, error: errorData.errors[0].message || `Roblox Hatası: ${errorData.errors[0].code}` };
-      }
-      
-      return { success: false, error: error.message || 'Bilinmeyen bir hata olustu.' };
+      return { success: false, error: errorData?.errors?.[0]?.message || error.message || 'Bilinmeyen hata' };
     }
   }
 
