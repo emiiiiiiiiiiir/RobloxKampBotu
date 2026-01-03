@@ -367,6 +367,11 @@ class RobloxAPI {
         }
 
         try {
+          // Legacy API /game-auth/v1/games/{universeId}/bans/user/{userId} artik 404 verebiliyor.
+          // Alternatif olarak /v1/groups/{groupId}/users/{userId}/ban (Grup Yasaklama) veya 
+          // Open Cloud API Key kullanimi zorunlu hale gelmis olabilir.
+          
+          console.log('[banUserFromGame] Legacy API deneniyor...');
           const response = await axios.post(
             `https://apis.roblox.com/game-auth/v1/games/${universeId}/bans/user/${userId}`,
             {
@@ -386,6 +391,14 @@ class RobloxAPI {
           return { success: true };
         } catch (err) {
           console.error('[banUserFromGame] Legacy API hatası:', err.response?.data || err.message);
+          
+          // Eger 404 aliyorsak, muhtemelen bu endpoint artik kapali.
+          if (err.response?.status === 404) {
+            return { 
+              success: false, 
+              error: 'Roblox Legacy Ban API (404) artik desteklenmiyor olabilir. Lütfen ROBLOX_API_KEY kullanarak modern sistemi aktif edin.' 
+            };
+          }
           throw err;
         }
       }
