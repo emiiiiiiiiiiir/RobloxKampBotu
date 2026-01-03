@@ -1088,7 +1088,13 @@ async function handleRankDemotion(interaction) {
 }
 
 async function handleBan(interaction) {
-  if (!interaction.member.roles.cache.some(role => config.adminRoleIds.includes(role.id))) {
+  // Config'deki admin rollerini kontrol et (Virgüllü format desteğiyle)
+  const hasAdminRole = config.adminRoleIds.some(idStr => {
+    const ids = idStr.split(',').map(s => s.trim());
+    return ids.some(id => interaction.member.roles.cache.has(id));
+  });
+
+  if (!hasAdminRole) {
     return interaction.reply({ embeds: [createErrorEmbed('Bu komutu kullanma yetkiniz yok!')], ephemeral: true });
   }
   
@@ -1140,7 +1146,13 @@ async function handleBan(interaction) {
 }
 
 async function handleUnban(interaction) {
-  if (!interaction.member.roles.cache.some(role => config.adminRoleIds.includes(role.id))) {
+  // Config'deki admin rollerini kontrol et (Virgüllü format desteğiyle)
+  const hasAdminRole = config.adminRoleIds.some(idStr => {
+    const ids = idStr.split(',').map(s => s.trim());
+    return ids.some(id => interaction.member.roles.cache.has(id));
+  });
+
+  if (!hasAdminRole) {
     return interaction.reply({ embeds: [createErrorEmbed('Bu komutu kullanma yetkiniz yok!')], ephemeral: true });
   }
   
