@@ -1779,10 +1779,17 @@ async function handleGameBan(interaction) {
     return interaction.editReply({ embeds: [createErrorEmbed('Roblox kullanıcısı bulunamadı!')] });
   }
 
-  // Config dosyasındaki gameId'yi kullan
-  const universeId = await robloxAPI.getUniverseId(config.gameId);
-  if (!universeId) {
-    return interaction.editReply({ embeds: [createErrorEmbed('Oyun bilgisi (Universe ID) alınamadı! Config dosyasındaki gameId\'yi kontrol edin.')] });
+  // Universe ID ve Place ID ayrimi - Roblox Cloud API doğrudan Universe ID ile calisir
+  // config.gameId muhtemelen Place ID'dir, o yuzden donusum yapmaliyiz
+  let universeId;
+  try {
+    universeId = await robloxAPI.getUniverseId(config.gameId);
+    if (!universeId) {
+      // Donusum basarisiz olursa config'dekini doğrudan kullan (belki zaten universeId'dir)
+      universeId = config.gameId;
+    }
+  } catch (error) {
+    universeId = config.gameId;
   }
 
   const result = await robloxAPI.banUserFromGame(universeId, userId, reason);
