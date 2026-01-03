@@ -1769,10 +1769,10 @@ async function handleGameBan(interaction) {
     return interaction.editReply({ embeds: [createErrorEmbed('Roblox kullanıcısı bulunamadı!')] });
   }
 
-  // Place ID'den Universe ID'yi al
+  // Config dosyasındaki gameId'yi kullan
   const universeId = await robloxAPI.getUniverseId(config.gameId);
   if (!universeId) {
-    return interaction.editReply({ embeds: [createErrorEmbed('Oyun bilgisi (Universe ID) alınamadı!')] });
+    return interaction.editReply({ embeds: [createErrorEmbed('Oyun bilgisi (Universe ID) alınamadı! Config dosyasındaki gameId\'yi kontrol edin.')] });
   }
 
   const result = await robloxAPI.banUserFromGame(universeId, userId, reason);
@@ -1780,7 +1780,7 @@ async function handleGameBan(interaction) {
   if (result.success) {
     const embed = new EmbedBuilder()
       .setTitle('Kullanıcı Oyundan Yasaklandı')
-      .setDescription(`**${robloxNick}** (${userId}) kullanıcısı başarıyla oyundan yasaklandı.\n\n**Sebep**\n${reason}`)
+      .setDescription(`**${robloxNick}** (${userId}) kullanıcısı başarıyla **${config.gameId}** ID'li oyundan yasaklandı.\n\n**Sebep**\n${reason}`)
       .setColor(0xED4245)
       .setTimestamp();
     
