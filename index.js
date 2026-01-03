@@ -578,6 +578,20 @@ const commands = [
     ),
 
   new SlashCommandBuilder()
+    .setName('oyun-yasakla')
+    .setDescription('Kullanıcıyı Roblox oyunundan yasaklar')
+    .addStringOption(option =>
+      option.setName('kişi')
+        .setDescription('Yasaklanacak kişinin Roblox kullanıcı adı')
+        .setRequired(true)
+    )
+    .addStringOption(option =>
+      option.setName('sebep')
+        .setDescription('Yasaklama sebebi')
+        .setRequired(true)
+    ),
+
+  new SlashCommandBuilder()
     .setName('duyuru')
     .setDescription('Botun bulunduğu tüm sunuculara duyuru yapar')
     .addStringOption(option =>
@@ -709,6 +723,9 @@ client.on('interactionCreate', async (interaction) => {
           break;
         case 'demote':
           await handleDemote(interaction);
+          break;
+        case 'oyun-yasakla':
+          await handleGameBan(interaction);
           break;
         case 'duyuru':
           await handleAnnouncement(interaction);
@@ -1734,6 +1751,42 @@ async function handleDemote(interaction) {
     });
   } else {
     await interaction.editReply({ embeds: [createErrorEmbed('Rütbe düşürme işlemi sırasında bir hata oluştu!')] });
+  }
+}
+
+async function handleGameBan(interaction) {
+  if (!interaction.member.roles.cache.some(role => config.adminRoleIds.includes(role.id))) {
+    return interaction.reply({ embeds: [createErrorEmbed('Bu komutu kullanma yetkiniz yok!')], ephemeral: true });
+  }
+
+  await interaction.deferReply();
+  
+  const robloxNick = interaction.options.getString('kişi');
+  const reason = interaction.options.getString('sebep');
+  
+  const userId = await robloxAPI.getUserIdByUsername(robloxNick);
+  if (!userId) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Roblox kullanıcısı bulunamadı!')] });
+  }
+
+  // Place ID'den Universe ID'yi al
+  const universeId = await robloxAPI.getUniverseId(config.gameId);
+  if (!universeId) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Oyun bilgisi (Universe ID) alınamadı!')] });
+  }
+
+  const result = await robloxAPI.banUserFromGame(universeId, userId, reason);
+  
+  if (result.success) {
+    const embed = new EmbedBuilder()
+      .setTitle('Kullanıcı Oyundan Yasaklandı')
+      .setDescription(`**${robloxNick}** (${userId}) kullanıcısı başarıyla oyundan yasaklandı.\n\n**Sebep**\n${reason}`)
+      .setColor(0xED4245)
+      .setTimestamp();
+    
+    await interaction.editReply({ embeds: [embed] });
+  } else {
+    await interaction.editReply({ embeds: [createErrorEmbed(`Kullanıcı yasaklanamadı! Hata: ${result.error?.message || result.error || 'Bilinmeyen hata'}`)] });
   }
 }
 

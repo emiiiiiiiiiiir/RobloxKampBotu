@@ -324,6 +324,47 @@ class RobloxAPI {
       return false;
     }
   }
+  // Roblox Cloud API kullanarak kullanıcıyı oyundan banla
+  async banUserFromGame(universeId, userId, reason) {
+    try {
+      // Çerez üzerinden CSRF token al
+      const csrfToken = await this.getCsrfToken(process.env.ROBLOX_COOKIE);
+      
+      const response = await axios.post(
+        `https://apis.roblox.com/cloud/v2/universes/${universeId}/user-restrictions/${userId}:restrict`,
+        {
+          gameJoinRestriction: {
+            active: true,
+            reason: reason,
+            displayReason: reason,
+            duration: null
+          }
+        },
+        {
+          headers: {
+            'Cookie': `.ROBLOSECURITY=${process.env.ROBLOX_COOKIE}`,
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken
+          }
+        }
+      );
+      return { success: true };
+    } catch (error) {
+      console.error('Oyun yasaklama hatası:', error.response?.data || error.message);
+      return { success: false, error: error.response?.data || error.message };
+    }
+  }
+
+  async getCsrfToken(cookie) {
+    try {
+      await axios.post('https://auth.roblox.com/v2/logout', {}, {
+        headers: { 'Cookie': `.ROBLOSECURITY=${cookie}` }
+      });
+      return null;
+    } catch (error) {
+      return error.response?.headers['x-csrf-token'] || null;
+    }
+  }
 }
 
 module.exports = new RobloxAPI();
