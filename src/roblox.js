@@ -324,33 +324,64 @@ class RobloxAPI {
       return false;
     }
   }
-  // Roblox Cloud API kullanarak kullanıcıyı oyundan banla
+  // Roblox API kullanarak kullanıcıyı oyundan banla
   async banUserFromGame(universeId, userId, reason) {
     try {
-      // Çerez üzerinden CSRF token al
-      const csrfToken = await this.getCsrfToken(process.env.ROBLOX_COOKIE);
+      console.log(`[banUserFromGame] Baslatiliyor - UniverseId: ${universeId}, UserId: ${userId}`);
       
-      const response = await axios.post(
-        `https://apis.roblox.com/cloud/v2/universes/${universeId}/user-restrictions/${userId}:restrict`,
-        {
-          gameJoinRestriction: {
-            active: true,
+      const csrfToken = await this.getCsrfToken(process.env.ROBLOX_COOKIE);
+      if (!csrfToken) {
+        console.error('[banUserFromGame] CSRF token alinamadi!');
+        return { success: false, error: 'CSRF token alinamadi' };
+      }
+
+      // Legacy API uzerinden banlama denemesi (Daha guvenilir)
+      try {
+        const response = await axios.post(
+          `https://apis.roblox.com/game-auth/v1/games/${universeId}/bans/user/${userId}`,
+          {
             reason: reason,
             displayReason: reason,
-            duration: null
+            duration: 0 // 0 = Kalici
+          },
+          {
+            headers: {
+              'Cookie': `.ROBLOSECURITY=${process.env.ROBLOX_COOKIE}`,
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': csrfToken
+            }
           }
-        },
-        {
-          headers: {
-            'Cookie': `.ROBLOSECURITY=${process.env.ROBLOX_COOKIE}`,
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': csrfToken
+        );
+        
+        console.log('[banUserFromGame] Legacy API Basarili:', response.data);
+        return { success: true };
+      } catch (legacyError) {
+        console.warn('[banUserFromGame] Legacy API basarisiz, Cloud V2 deneniyor:', legacyError.response?.data || legacyError.message);
+        
+        // Cloud v2 API'sini dene
+        const cloudResponse = await axios.post(
+          `https://apis.roblox.com/cloud/v2/universes/${universeId}/user-restrictions/${userId}:restrict`,
+          {
+            gameJoinRestriction: {
+              active: true,
+              reason: reason,
+              displayReason: reason,
+              duration: null
+            }
+          },
+          {
+            headers: {
+              'Cookie': `.ROBLOSECURITY=${process.env.ROBLOX_COOKIE}`,
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': csrfToken
+            }
           }
-        }
-      );
-      return { success: true };
+        );
+        console.log('[banUserFromGame] Cloud V2 Basarili');
+        return { success: true };
+      }
     } catch (error) {
-      console.error('Oyun yasaklama hatası:', error.response?.data || error.message);
+      console.error('[banUserFromGame] Kritik Hata:', error.response?.data || error.message);
       return { success: false, error: error.response?.data || error.message };
     }
   }
