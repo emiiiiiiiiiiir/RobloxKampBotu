@@ -330,35 +330,67 @@ class RobloxAPI {
       console.log(`[banUserFromGame] Başlatılıyor - UniverseId: ${universeId}, UserId: ${userId}`);
       
       const apiKey = process.env.ROBLOX_API_KEY;
-      if (!apiKey) {
-        throw new Error('ROBLOX_API_KEY eksik. Lütfen secrets kısmından ekleyin.');
+      const cookie = process.env.ROBLOX_COOKIE;
+
+      // Yöntem 1: API Key varsa Cloud V2 kullan (En güvenilir yol)
+      if (apiKey) {
+        try {
+          const response = await axios.post(
+            `https://apis.roblox.com/cloud/v2/universes/${universeId}/user-restrictions/${userId}:restrict`,
+            {
+              gameJoinRestriction: {
+                active: true,
+                reason: reason,
+                displayReason: reason,
+                duration: null
+              }
+            },
+            {
+              headers: {
+                'x-api-key': apiKey,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+          console.log('[banUserFromGame] Cloud V2 (API Key) Başarılı');
+          return { success: true };
+        } catch (err) {
+          console.warn('[banUserFromGame] API Key denemesi başarısız, Cookie deneniyor...');
+        }
       }
 
-      // Cloud V2 API (API Key ile çalışır)
-      try {
-        const response = await axios.post(
-          `https://apis.roblox.com/cloud/v2/universes/${universeId}/user-restrictions/${userId}:restrict`,
-          {
-            gameJoinRestriction: {
-              active: true,
+      // Yöntem 2: API Key yoksa veya başarısızsa Cookie ile Legacy API dene
+      if (cookie) {
+        const csrfToken = await this.getCsrfToken(cookie);
+        if (!csrfToken) {
+          throw new Error('CSRF token alınamadı (Çerez geçersiz olabilir)');
+        }
+
+        try {
+          const response = await axios.post(
+            `https://apis.roblox.com/game-auth/v1/games/${universeId}/bans/user/${userId}`,
+            {
               reason: reason,
               displayReason: reason,
-              duration: null // Sınırsız ban
+              duration: 0
+            },
+            {
+              headers: {
+                'Cookie': `.ROBLOSECURITY=${cookie}`,
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+              }
             }
-          },
-          {
-            headers: {
-              'x-api-key': apiKey,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-        console.log('[banUserFromGame] Cloud V2 Başarılı');
-        return { success: true };
-      } catch (err) {
-        console.error('[banUserFromGame] Cloud V2 hatası:', err.response?.data || err.message);
-        throw err;
+          );
+          console.log('[banUserFromGame] Legacy API (Cookie) Başarılı');
+          return { success: true };
+        } catch (err) {
+          console.error('[banUserFromGame] Legacy API hatası:', err.response?.data || err.message);
+          throw err;
+        }
       }
+
+      throw new Error('Ne ROBLOX_API_KEY ne de ROBLOX_COOKIE bulundu.');
     } catch (error) {
       const errorData = error.response?.data;
       const statusCode = error.response?.status;
@@ -366,13 +398,9 @@ class RobloxAPI {
       console.error(`[banUserFromGame] Hata - Status: ${statusCode}`, JSON.stringify(errorData || error.message));
       
       if (statusCode === 403) {
-        return { success: false, error: 'Roblox API yetkisi reddetti (403). API Key yetkilerini (Universe: User Restrict) kontrol edin.' };
+        return { success: false, error: 'Yetki reddedildi (403). Botun veya çerezin oyunda ban yetkisi olduğundan emin olun.' };
       }
       
-      if (statusCode === 401) {
-        return { success: false, error: 'Geçersiz API Key (401). Lütfen ROBLOX_API_KEY\'i kontrol edin.' };
-      }
-
       return { success: false, error: errorData?.errors?.[0]?.message || error.message || 'Bilinmeyen hata' };
     }
   }
