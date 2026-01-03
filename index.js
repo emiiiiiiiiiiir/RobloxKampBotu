@@ -1755,74 +1755,10 @@ async function handleDemote(interaction) {
 }
 
 async function handleGameBan(interaction) {
-  await interaction.deferReply();
-  
-  // Yetki kontrolü (36, 37, 38 rütbeler)
-  const managerRobloxName = getLinkedRobloxUsername(interaction.user.id);
-  if (!managerRobloxName) {
-    return interaction.editReply({ embeds: [createErrorEmbed('Roblox hesabınız bağlı değil!')] });
-  }
-  
-  const managerRobloxId = await robloxAPI.getUserIdByUsername(managerRobloxName);
-  const managerRank = await robloxAPI.getUserRankInGroup(managerRobloxId, config.groupId);
-  
-  const allowedManagerRanks = [36, 37, 38, 255]; // 255 (sahip) her zaman yetkilidir
-  if (!managerRank || !allowedManagerRanks.includes(managerRank.rank)) {
-    return interaction.editReply({ embeds: [createErrorEmbed('Bu komutu kullanmak için rütbeniz yetersiz! (Gerekli: 36, 37, 38)')] });
-  }
-
-  const robloxNick = interaction.options.getString('kişi');
-  const reason = interaction.options.getString('sebep');
-  
-  const userId = await robloxAPI.getUserIdByUsername(robloxNick);
-  if (!userId) {
-    return interaction.editReply({ embeds: [createErrorEmbed('Roblox kullanıcısı bulunamadı!')] });
-  }
-
-  // Universe ID tespiti ve loglama
-  console.log(`[handleGameBan] config.gameId: ${config.gameId}`);
-  
-  // Eğer ID çok uzunsa (10+ hane) muhtemelen zaten Universe ID'dir veya hatalı bir ID'dir.
-  // Place ID'ler genellikle 10-11 hanelidir. Universe ID'ler de benzerdir ama api.roblox.com/universes/v1/places/ID/universe
-  // üzerinden doğrulanmalıdır.
-  
-  let universeId = config.gameId;
-  
-  try {
-    const convertedId = await robloxAPI.getUniverseId(config.gameId);
-    if (convertedId) {
-      universeId = convertedId.toString();
-      console.log(`[handleGameBan] Place ID -> Universe ID donusumu basarili: ${universeId}`);
-    } else {
-      console.log(`[handleGameBan] Donusum yapilamadi veya ID zaten Universe ID. Mevcut ID kullaniliyor: ${universeId}`);
-    }
-  } catch (error) {
-    console.warn(`[handleGameBan] ID donusum denemesi sirasunda hata (normal olabilir):`, error.message);
-  }
-
-  const result = await robloxAPI.banUserFromGame(universeId, userId, reason);
-  
-  if (result.success) {
-    const embed = new EmbedBuilder()
-      .setTitle('Kullanıcı Oyundan Yasaklandı')
-      .setDescription(`**${robloxNick}** (${userId}) kullanıcısı başarıyla **${config.gameId}** ID'li oyundan yasaklandı.\n\n**Sebep**\n${reason}`)
-      .setColor(0xED4245)
-      .setTimestamp();
-    
-    await interaction.editReply({ embeds: [embed] });
-  } else {
-    let errorMessage = 'Bilinmeyen bir hata oluştu';
-    if (result.error) {
-      if (typeof result.error === 'string') {
-        errorMessage = result.error;
-      } else if (result.error.errors && result.error.errors.length > 0) {
-        errorMessage = result.error.errors[0].message || `Hata Kodu: ${result.error.errors[0].code}`;
-      } else {
-        errorMessage = JSON.stringify(result.error);
-      }
-    }
-    await interaction.editReply({ embeds: [createErrorEmbed(`Kullanıcı yasaklanamadı! Hata: ${errorMessage}`)] });
-  }
+  return interaction.reply({ 
+    embeds: [createErrorEmbed('Bu komut şu an geliştirme aşamasındadır.')], 
+    ephemeral: true 
+  });
 }
 
 async function handleAnnouncement(interaction) {
