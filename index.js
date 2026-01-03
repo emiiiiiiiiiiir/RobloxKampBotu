@@ -1781,19 +1781,23 @@ async function handleGameBan(interaction) {
 
   // Universe ID tespiti ve loglama
   console.log(`[handleGameBan] config.gameId: ${config.gameId}`);
+  
+  // Eğer ID çok uzunsa (10+ hane) muhtemelen zaten Universe ID'dir veya hatalı bir ID'dir.
+  // Place ID'ler genellikle 10-11 hanelidir. Universe ID'ler de benzerdir ama api.roblox.com/universes/v1/places/ID/universe
+  // üzerinden doğrulanmalıdır.
+  
   let universeId = config.gameId;
   
   try {
-    // Universe ID donusumunu her ihtimale karsi dene
     const convertedId = await robloxAPI.getUniverseId(config.gameId);
     if (convertedId) {
-      universeId = convertedId;
-      console.log(`[handleGameBan] Place ID -> Universe ID: ${universeId}`);
+      universeId = convertedId.toString();
+      console.log(`[handleGameBan] Place ID -> Universe ID donusumu basarili: ${universeId}`);
     } else {
-      console.log(`[handleGameBan] Donusum yapilamadi, config.gameId kullaniliyor.`);
+      console.log(`[handleGameBan] Donusum yapilamadi veya ID zaten Universe ID. Mevcut ID kullaniliyor: ${universeId}`);
     }
   } catch (error) {
-    console.warn(`[handleGameBan] ID donusum hatasi:`, error.message);
+    console.warn(`[handleGameBan] ID donusum denemesi sirasunda hata (normal olabilir):`, error.message);
   }
 
   const result = await robloxAPI.banUserFromGame(universeId, userId, reason);
