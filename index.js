@@ -592,6 +592,15 @@ const commands = [
     ),
 
   new SlashCommandBuilder()
+    .setName('oyun-yasak-kaldır')
+    .setDescription('Bir kullanıcının oyun yasaklılar listesinden çıkarır')
+    .addStringOption(option =>
+      option.setName('kişi')
+        .setDescription('Yasağı kaldırılacak kişinin Roblox kullanıcı adı')
+        .setRequired(true)
+    ),
+
+  new SlashCommandBuilder()
     .setName('duyuru')
     .setDescription('Botun bulunduğu tüm sunuculara duyuru yapar')
     .addStringOption(option =>
@@ -726,6 +735,9 @@ client.on('interactionCreate', async (interaction) => {
           break;
         case 'oyun-yasakla':
           await handleGameBan(interaction);
+          break;
+        case 'oyun-yasak-kaldır':
+          await handleGameUnban(interaction);
           break;
         case 'duyuru':
           await handleAnnouncement(interaction);
@@ -1832,12 +1844,44 @@ async function handleGameBan(interaction) {
     timestamp: new Date().toISOString(),
     manager: managerRobloxName
   };
+  await interaction.editReply({ embeds: [embed] });
+}
+
+async function handleGameUnban(interaction) {
+  await interaction.deferReply();
+  
+  const managerRobloxName = getLinkedRobloxUsername(interaction.user.id);
+  if (!managerRobloxName) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Roblox hesabınız bağlı değil!')] });
+  }
+  
+  const managerRobloxId = await robloxAPI.getUserIdByUsername(managerRobloxName);
+  const managerRank = await robloxAPI.getUserRankInGroup(managerRobloxId, config.groupId);
+  
+  const allowedManagerRanks = [36, 37, 38, 255]; 
+  if (!managerRank || !allowedManagerRanks.includes(managerRank.rank)) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Bu komutu kullanmak için rütbeniz yetersiz!')] });
+  }
+
+  const robloxNick = interaction.options.getString('kişi');
+  const userId = await robloxAPI.getUserIdByUsername(robloxNick);
+  
+  if (!userId) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Roblox kullanıcısı bulunamadı!')] });
+  }
+
+  const bans = loadGameBans();
+  if (!bans[userId]) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Bu kullanıcı zaten yasaklılar listesinde değil!')] });
+  }
+
+  delete bans[userId];
   saveGameBans(bans);
 
   const embed = new EmbedBuilder()
-    .setTitle('Kullanıcı Yasaklandı (DataStore)')
-    .setDescription(`**${robloxNick}** (${userId}) kullanıcısı başarıyla yasaklılar listesine eklendi.\n\n**Önemli:** Yasaklamanın aktif olması için Roblox Studio'daki scripti kurmuş olmanız gerekir.\n\n**Sebep**\n${reason}`)
-    .setColor(0xED4245)
+    .setTitle('Oyun Yasağı Kaldırıldı')
+    .setDescription(`**${robloxNick}** (${userId}) kullanıcısının oyun yasağı başarıyla kaldırıldı.`)
+    .setColor(0x57F287)
     .setTimestamp();
   
   await interaction.editReply({ embeds: [embed] });
