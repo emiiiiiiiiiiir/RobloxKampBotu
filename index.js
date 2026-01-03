@@ -1755,12 +1755,22 @@ async function handleDemote(interaction) {
 }
 
 async function handleGameBan(interaction) {
-  if (!interaction.member.roles.cache.some(role => config.adminRoleIds.includes(role.id))) {
-    return interaction.reply({ embeds: [createErrorEmbed('Bu komutu kullanma yetkiniz yok!')], ephemeral: true });
-  }
-
   await interaction.deferReply();
   
+  // Yetki kontrolü (36, 37, 38 rütbeler)
+  const managerRobloxName = getLinkedRobloxUsername(interaction.user.id);
+  if (!managerRobloxName) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Roblox hesabınız bağlı değil!')] });
+  }
+  
+  const managerRobloxId = await robloxAPI.getUserIdByUsername(managerRobloxName);
+  const managerRank = await robloxAPI.getUserRankInGroup(managerRobloxId, config.groupId);
+  
+  const allowedManagerRanks = [36, 37, 38, 255]; // 255 (sahip) her zaman yetkilidir
+  if (!managerRank || !allowedManagerRanks.includes(managerRank.rank)) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Bu komutu kullanmak için rütbeniz yetersiz! (Gerekli: 36, 37, 38)')] });
+  }
+
   const robloxNick = interaction.options.getString('kişi');
   const reason = interaction.options.getString('sebep');
   
