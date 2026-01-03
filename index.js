@@ -1796,7 +1796,17 @@ async function handleGameBan(interaction) {
     
     await interaction.editReply({ embeds: [embed] });
   } else {
-    await interaction.editReply({ embeds: [createErrorEmbed(`Kullanıcı yasaklanamadı! Hata: ${result.error?.message || result.error || 'Bilinmeyen hata'}`)] });
+    let errorMessage = 'Bilinmeyen bir hata oluştu';
+    if (result.error) {
+      if (typeof result.error === 'string') {
+        errorMessage = result.error;
+      } else if (result.error.errors && result.error.errors.length > 0) {
+        errorMessage = result.error.errors[0].message || `Hata Kodu: ${result.error.errors[0].code}`;
+      } else {
+        errorMessage = JSON.stringify(result.error);
+      }
+    }
+    await interaction.editReply({ embeds: [createErrorEmbed(`Kullanıcı yasaklanamadı! Hata: ${errorMessage}`)] });
   }
 }
 
