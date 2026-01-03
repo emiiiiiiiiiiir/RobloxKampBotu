@@ -366,19 +366,12 @@ class RobloxAPI {
           throw new Error('CSRF token alınamadı (Çerez geçersiz olabilir)');
         }
 
+        // Önce normal oyun banlamayı dene (Legacy)
         try {
-          // Legacy API /game-auth/v1/games/{universeId}/bans/user/{userId} artik 404 verebiliyor.
-          // Alternatif olarak /v1/groups/{groupId}/users/{userId}/ban (Grup Yasaklama) veya 
-          // Open Cloud API Key kullanimi zorunlu hale gelmis olabilir.
-          
           console.log('[banUserFromGame] Legacy API deneniyor...');
-          const response = await axios.post(
+          await axios.post(
             `https://apis.roblox.com/game-auth/v1/games/${universeId}/bans/user/${userId}`,
-            {
-              reason: reason,
-              displayReason: reason,
-              duration: 0
-            },
+            { reason: reason, displayReason: reason, duration: 0 },
             {
               headers: {
                 'Cookie': `.ROBLOSECURITY=${cookie}`,
@@ -390,16 +383,36 @@ class RobloxAPI {
           console.log('[banUserFromGame] Legacy API (Cookie) Başarılı');
           return { success: true };
         } catch (err) {
-          console.error('[banUserFromGame] Legacy API hatası:', err.response?.data || err.message);
+          console.warn('[banUserFromGame] Legacy API başarısız, Grup Banı deneniyor...');
           
-          // Eger 404 aliyorsak, muhtemelen bu endpoint artik kapali.
-          if (err.response?.status === 404) {
-            return { 
-              success: false, 
-              error: 'Roblox Legacy Ban API (404) artik desteklenmiyor olabilir. Lütfen ROBLOX_API_KEY kullanarak modern sistemi aktif edin.' 
-            };
+          // Eğer oyun banı başarısız olursa, alternatif olarak GRUPTAN BANLAMAYI dene
+          // Bu yöntem çerez yetkisi olan hesap grupta yöneticiyse çalışır.
+          try {
+            const groupId = process.env.ROBLOX_GROUP_ID || '10919576'; // Varsayılan grup ID
+            const groupBanResponse = await axios.post(
+              `https://groups.roblox.com/v1/groups/${groupId}/users/${userId}/ban`,
+              { reason: reason },
+              {
+                headers: {
+                  'Cookie': `.ROBLOSECURITY=${cookie}`,
+                  'Content-Type': 'application/json',
+                  'X-CSRF-TOKEN': csrfToken
+                }
+              }
+            );
+            console.log('[banUserFromGame] Grup Banı Başarılı');
+            return { success: true, message: 'Oyun banı başarısız oldu ancak kullanıcı gruptan yasaklandı.' };
+          } catch (groupErr) {
+            console.error('[banUserFromGame] Grup Banı hatası:', groupErr.response?.data || groupErr.message);
+            
+            if (err.response?.status === 404) {
+              return { 
+                success: false, 
+                error: 'Roblox bu oyun için doğrudan banlama izni vermiyor. Çözüm: Oyunun Sahibi (Owner) hesabı üzerinden API Key almalı veya bot hesabı grupta "Ban" yetkisine sahip olmalıdır.' 
+              };
+            }
+            throw groupErr;
           }
-          throw err;
         }
       }
 
