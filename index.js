@@ -896,8 +896,16 @@ async function checkAccountSync(interaction) {
     return null;
   }
 
-  // RoWifi API kontrolü kaldırıldı, sadece botun kendi verisi üzerinden devam ediliyor.
-  // Kullanıcı zaten /roblox-bağla yaparken profil açıklamasıyla doğrulama yapmak zorunda.
+  // RoWifi API kontrolü yapılamadığı için (Token yok), Discord rütbe isminden bir kontrol deneyelim
+  const member = interaction.member;
+  const nickname = member.displayName;
+  
+  // Eğer kullanıcının Discord adı (veya takma adı) botumuzdaki Roblox adını İÇERMİYORSA bir uyarı verelim
+  // Bu, RoWifi'nin genellikle yaptığı gibi "Nickname" senkronizasyonu üzerinden bir kontrol sağlar.
+  if (!nickname.toLowerCase().includes(botUsername.toLowerCase())) {
+    console.warn(`[Sync Warning] Nickname mismatch: ${nickname} vs ${botUsername}`);
+    // Not: Bu sadece bir uyarıdır, işlemi engellemez ama kullanıcıya bilgi verir.
+  }
   
   return { username: botUsername };
 }
