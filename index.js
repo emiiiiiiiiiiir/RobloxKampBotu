@@ -1594,13 +1594,23 @@ async function handleRobloxChange(interaction) {
   
   const discordUserId = interaction.user.id;
   
-  // Hesap bağlı mı kontrol et
+  // Hesap zaten bağlı mı kontrol et
   const existingLink = getLinkedRobloxUsername(discordUserId);
   if (!existingLink) {
-    return interaction.editReply({ embeds: [createErrorEmbed('Discord hesabınız henüz bir Roblox hesabına bağlı değil! Önce `/roblox-bağla` komutunu kullanın.')] });
+    return interaction.editReply({ embeds: [createErrorEmbed('Discord hesabınız henüz bir Roblox hesabına bağlı değil! Önce \`/roblox-bağla\` komutunu kullanın.')] });
   }
-  
+
   const robloxNick = interaction.options.getString('kişi');
+
+  // Eğer zaten bu hesaba bağlıysa uyar
+  if (existingLink.toLowerCase() === robloxNick.toLowerCase()) {
+    const alreadyLinkedEmbed = new EmbedBuilder()
+      .setTitle('Zaten Bağlı')
+      .setDescription(`Discord hesabınız zaten **${existingLink}** Roblox hesabına bağlı durumdadır. Farklı bir hesaba geçmek istemiyorsanız değiştirme işlemi yapmanıza gerek yoktur.\n\nEğer bilgilerinizin güncel olmadığını düşünüyorsanız \`/yenile\` komutunu kullanabilirsiniz.`)
+      .setColor(0xFEE75C)
+      .setTimestamp();
+    return interaction.editReply({ embeds: [alreadyLinkedEmbed] });
+  }
   
   const userId = await robloxAPI.getUserIdByUsername(robloxNick);
   if (!userId) {
