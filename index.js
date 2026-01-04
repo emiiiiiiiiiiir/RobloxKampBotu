@@ -1507,9 +1507,12 @@ async function handleRobloxLink(interaction) {
   if (existingLink) {
     // Eğer kullanıcı aynı isimle bağlanmaya çalışıyorsa uyaralım
     if (existingLink.toLowerCase() === robloxNick.toLowerCase()) {
-      return interaction.editReply({ 
-        embeds: [createErrorEmbed(`Hesabınız zaten **${existingLink}** olarak bağlı. Bilgileriniz güncel değilse Discord adınızı RoWifi üzerinden güncelleyip rütbe komutlarını kullanmayı deneyebilirsiniz.`)] 
-      });
+      const alreadyLinkedEmbed = new EmbedBuilder()
+        .setTitle('Zaten Bağlı')
+        .setDescription(`Discord hesabınız zaten **${existingLink}** Roblox hesabına bağlı durumdadır. Tekrar bağlamanıza gerek yoktur.\n\nEğer bilgilerinizin güncel olmadığını düşünüyorsanız \`/yenile\` komutunu kullanabilirsiniz.`)
+        .setColor(0xFEE75C)
+        .setTimestamp();
+      return interaction.editReply({ embeds: [alreadyLinkedEmbed] });
     }
     return interaction.editReply({ embeds: [createErrorEmbed(`Discord hesabınız zaten **${existingLink}** kullanıcısına bağlı! Hesabınızı değiştirmek için \`/roblox-değiştir\` komutunu kullanın.`)] });
   }
