@@ -1787,6 +1787,11 @@ async function handleDemote(interaction) {
     return interaction.editReply({ embeds: [createErrorEmbed('Roblox kullanıcısı bulunamadı!')] });
   }
 
+  // Kendi rütbesini değiştirmeyi engelle
+  if (userId === managerRobloxId) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Kendi rütbenizi değiştiremezsiniz!')] });
+  }
+
   const currentRank = await robloxAPI.getUserRankInGroup(userId, config.groupId);
   if (!currentRank) {
     return interaction.editReply({ embeds: [createErrorEmbed('Kullanıcı grupta değil!')] });
