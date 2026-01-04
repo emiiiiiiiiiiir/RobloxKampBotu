@@ -918,15 +918,25 @@ async function checkAccountSync(interaction) {
 async function handleYenile(interaction) {
   await interaction.deferReply({ ephemeral: true });
   
+  const discordUserId = interaction.user.id;
+  const botUsername = getLinkedRobloxUsername(discordUserId);
   const nickname = interaction.member.displayName;
-  // Genellikle Nickname: "Username (Rank)" veya "Username" formatındadır
-  // Rowifi isimlendirmesinden username'i çıkarmaya çalışalım (basitçe ilk kelime veya parantez öncesi)
   const potentialUsername = nickname.split(' ')[0].replace(/[()]/g, '');
   
-  // Burada kullanıcıyı /roblox-bağla komutuna yönlendiriyoruz veya otomatik eşleme deniyoruz
+  // Eğer botta kayıtlı bir kullanıcı varsa ve nickname ile uyuşuyorsa sadece başarı mesajı ver
+  if (botUsername && nickname.toLowerCase().includes(botUsername.toLowerCase())) {
+    const embed = new EmbedBuilder()
+      .setTitle('Bilgiler Güncel')
+      .setDescription(`Hesabınız zaten **${botUsername}** olarak sistemimize kayıtlı ve Discord adınızla uyumlu. Herhangi bir işlem yapmanıza gerek yoktur.`)
+      .setColor(0x57F287)
+      .setTimestamp();
+    return interaction.editReply({ embeds: [embed] });
+  }
+
+  // Eğer botta kayıtlı kullanıcı yoksa veya uyuşmuyorsa yönlendir
   const embed = new EmbedBuilder()
-    .setTitle('Bilgiler Güncellendi')
-    .setDescription(`Discord adınızdaki (**${potentialUsername}**) ismi bot sistemimize kaydedilmek üzere kontrol edildi.\n\nEğer bu isim doğruysa lütfen \`/roblox-bağla ${potentialUsername}\` komutunu kullanarak işlemi tamamlayın.`)
+    .setTitle('Bilgiler Kontrol Edildi')
+    .setDescription(`Discord adınızdaki (**${potentialUsername}**) ismi tespit edildi.\n\nEğer bu isim doğruysa ve bot sistemine kaydetmek istiyorsanız lütfen \`/roblox-bağla ${potentialUsername}\` komutunu kullanarak işlemi tamamlayın.\n\nEğer zaten bağlıysanız ancak isminiz uyuşmuyorsa, lütfen Discord adınızın Roblox adınızla aynı olduğundan emin olun.`)
     .setColor(0x5865F2)
     .setTimestamp();
     
@@ -1490,14 +1500,19 @@ async function handleRobloxLink(interaction) {
   cleanExpiredVerifications();
   
   const discordUserId = interaction.user.id;
+  const robloxNick = interaction.options.getString('kişi');
   
   // Hesap zaten bağlı mı kontrol et
   const existingLink = getLinkedRobloxUsername(discordUserId);
   if (existingLink) {
+    // Eğer kullanıcı aynı isimle bağlanmaya çalışıyorsa uyaralım
+    if (existingLink.toLowerCase() === robloxNick.toLowerCase()) {
+      return interaction.editReply({ 
+        embeds: [createErrorEmbed(`Hesabınız zaten **${existingLink}** olarak bağlı. Bilgileriniz güncel değilse Discord adınızı RoWifi üzerinden güncelleyip rütbe komutlarını kullanmayı deneyebilirsiniz.`)] 
+      });
+    }
     return interaction.editReply({ embeds: [createErrorEmbed(`Discord hesabınız zaten **${existingLink}** kullanıcısına bağlı! Hesabınızı değiştirmek için \`/roblox-değiştir\` komutunu kullanın.`)] });
   }
-  
-  const robloxNick = interaction.options.getString('kişi');
   
   const userId = await robloxAPI.getUserIdByUsername(robloxNick);
   if (!userId) {
