@@ -886,6 +886,44 @@ async function checkRankPermissions(discordUserId, targetRank) {
   };
 }
 
+async function getRowifiLinkedAccount(guildId, discordUserId) {
+  const token = process.env.ROWIFI_API_TOKEN;
+  if (!token) return null;
+
+  try {
+    const response = await axios.get(`https://api.rowifi.link/v2/guilds/${guildId}/members/${discordUserId}`, {
+      headers: { 'Authorization': `Bot ${token}` }
+    });
+    return response.data; // { roblox_id: number, username: string }
+  } catch (error) {
+    if (error.response?.status !== 404) {
+      console.error(`[RoWifi] Hesap çekme hatası (${discordUserId}):`, error.response?.status);
+    }
+    return null;
+  }
+}
+
+async function checkAccountSync(interaction) {
+  const rowifiAccount = await getRowifiLinkedAccount(interaction.guildId, interaction.user.id);
+  const botUsername = getLinkedRobloxUsername(interaction.user.id);
+  
+  if (!rowifiAccount) {
+    await interaction.editReply({ 
+      embeds: [createErrorEmbed('RoWifi üzerinden hesabınız doğrulanmamış! Lütfen önce RoWifi botu ile doğrulama yapın.')]
+    });
+    return null;
+  }
+
+  if (!botUsername || botUsername.toLowerCase() !== rowifiAccount.username.toLowerCase()) {
+    await interaction.editReply({ 
+      embeds: [createErrorEmbed(`Hesap Uyuşmazlığı!\n\nRoWifi Hesabı: **${rowifiAccount.username}**\nBotumuzdaki Hesap: **${botUsername || 'Yok'}**\n\nLütfen botumuzdaki hesabınızı RoWifi ile aynı yapın: \`/roblox-bağla ${rowifiAccount.username}\``)]
+    });
+    return null;
+  }
+
+  return rowifiAccount;
+}
+
 async function handleRankQuery(interaction) {
   if (!interaction.guild.name.includes('AEK')) {
     return interaction.reply({ content: 'HATA: Bu komut sadece |AEK| Turkish Armed Forces\'a bağlı sunucularda kullanılabilir.', ephemeral: true });
@@ -893,6 +931,8 @@ async function handleRankQuery(interaction) {
   
   await interaction.deferReply();
   
+  if (!(await checkAccountSync(interaction))) return;
+
   const robloxNick = interaction.options.getString('kişi');
   const userId = await robloxAPI.getUserIdByUsername(robloxNick);
   
@@ -929,6 +969,8 @@ async function handleRankChange(interaction) {
   
   await interaction.deferReply();
   
+  if (!(await checkAccountSync(interaction))) return;
+
   const robloxNick = interaction.options.getString('kişi');
   const targetRankName = interaction.options.getString('rütbe');
   const reason = interaction.options.getString('sebep');
@@ -991,6 +1033,8 @@ async function handleRankPromotion(interaction) {
   
   await interaction.deferReply();
   
+  if (!(await checkAccountSync(interaction))) return;
+
   const robloxNick = interaction.options.getString('kişi');
   const reason = interaction.options.getString('sebep');
   const userId = await robloxAPI.getUserIdByUsername(robloxNick);
