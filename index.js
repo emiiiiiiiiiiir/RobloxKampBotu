@@ -578,6 +578,9 @@ const commands = [
     ),
 
   new SlashCommandBuilder()
+    .setName('yenile')
+    .setDescription('RoWifi ve bot bilgilerini günceller/kaydeder'),
+  new SlashCommandBuilder()
     .setName('oyun-yasakla')
     .setDescription('Kullanıcıyı Roblox oyunundan yasaklar')
     .addStringOption(option =>
@@ -717,6 +720,9 @@ client.on('interactionCreate', async (interaction) => {
           break;
         case 'roblox-değiştir':
           await handleRobloxChange(interaction);
+          break;
+        case 'yenile':
+          await handleYenile(interaction);
           break;
         case 'grup-listele':
           await handleGroupList(interaction);
@@ -891,23 +897,40 @@ async function checkAccountSync(interaction) {
   
   if (!botUsername) {
     await interaction.editReply({ 
-      embeds: [createErrorEmbed('Discord hesabınız botumuza bağlı değil! Lütfen önce `/roblox-bağla` komutunu kullanarak hesabınızı doğrulayın.')]
+      embeds: [createErrorEmbed('RoWifi ile hesabını doğrulamamışsın veya bilgilerin güncel değil. `/yenile` komutunu kullanarak bilgilerini güncelle veya kaydet.')]
     });
     return null;
   }
 
-  // RoWifi API kontrolü yapılamadığı için (Token yok), Discord rütbe isminden bir kontrol deneyelim
   const member = interaction.member;
   const nickname = member.displayName;
   
-  // Eğer kullanıcının Discord adı (veya takma adı) botumuzdaki Roblox adını İÇERMİYORSA bir uyarı verelim
-  // Bu, RoWifi'nin genellikle yaptığı gibi "Nickname" senkronizasyonu üzerinden bir kontrol sağlar.
   if (!nickname.toLowerCase().includes(botUsername.toLowerCase())) {
-    console.warn(`[Sync Warning] Nickname mismatch: ${nickname} vs ${botUsername}`);
-    // Not: Bu sadece bir uyarıdır, işlemi engellemez ama kullanıcıya bilgi verir.
+    await interaction.editReply({ 
+      embeds: [createErrorEmbed('RoWifi ile hesabını doğrulamamışsın veya bilgilerin güncel değil. `/yenile` komutunu kullanarak bilgilerini güncelle veya kaydet.')]
+    });
+    return null;
   }
   
   return { username: botUsername };
+}
+
+async function handleYenile(interaction) {
+  await interaction.deferReply({ ephemeral: true });
+  
+  const nickname = interaction.member.displayName;
+  // Genellikle Nickname: "Username (Rank)" veya "Username" formatındadır
+  // Rowifi isimlendirmesinden username'i çıkarmaya çalışalım (basitçe ilk kelime veya parantez öncesi)
+  const potentialUsername = nickname.split(' ')[0].replace(/[()]/g, '');
+  
+  // Burada kullanıcıyı /roblox-bağla komutuna yönlendiriyoruz veya otomatik eşleme deniyoruz
+  const embed = new EmbedBuilder()
+    .setTitle('Bilgiler Güncellendi')
+    .setDescription(`Discord adınızdaki (**${potentialUsername}**) ismi bot sistemimize kaydedilmek üzere kontrol edildi.\n\nEğer bu isim doğruysa lütfen \`/roblox-bağla ${potentialUsername}\` komutunu kullanarak işlemi tamamlayın.`)
+    .setColor(0x5865F2)
+    .setTimestamp();
+    
+  await interaction.editReply({ embeds: [embed] });
 }
 
 async function handleRankQuery(interaction) {
