@@ -886,42 +886,20 @@ async function checkRankPermissions(discordUserId, targetRank) {
   };
 }
 
-async function getRowifiLinkedAccount(guildId, discordUserId) {
-  const token = process.env.ROWIFI_API_TOKEN;
-  if (!token) return null;
-
-  try {
-    const response = await axios.get(`https://api.rowifi.link/v2/guilds/${guildId}/members/${discordUserId}`, {
-      headers: { 'Authorization': `Bot ${token}` }
-    });
-    return response.data; // { roblox_id: number, username: string }
-  } catch (error) {
-    if (error.response?.status !== 404) {
-      console.error(`[RoWifi] Hesap çekme hatası (${discordUserId}):`, error.response?.status);
-    }
-    return null;
-  }
-}
-
 async function checkAccountSync(interaction) {
-  const rowifiAccount = await getRowifiLinkedAccount(interaction.guildId, interaction.user.id);
   const botUsername = getLinkedRobloxUsername(interaction.user.id);
   
-  if (!rowifiAccount) {
+  if (!botUsername) {
     await interaction.editReply({ 
-      embeds: [createErrorEmbed('RoWifi üzerinden hesabınız doğrulanmamış! Lütfen önce RoWifi botu ile doğrulama yapın.')]
+      embeds: [createErrorEmbed('Discord hesabınız botumuza bağlı değil! Lütfen önce `/roblox-bağla` komutunu kullanarak hesabınızı doğrulayın.')]
     });
     return null;
   }
 
-  if (!botUsername || botUsername.toLowerCase() !== rowifiAccount.username.toLowerCase()) {
-    await interaction.editReply({ 
-      embeds: [createErrorEmbed(`Hesap Uyuşmazlığı!\n\nRoWifi Hesabı: **${rowifiAccount.username}**\nBotumuzdaki Hesap: **${botUsername || 'Yok'}**\n\nLütfen botumuzdaki hesabınızı RoWifi ile aynı yapın: \`/roblox-bağla ${rowifiAccount.username}\``)]
-    });
-    return null;
-  }
-
-  return rowifiAccount;
+  // RoWifi API kontrolü kaldırıldı, sadece botun kendi verisi üzerinden devam ediliyor.
+  // Kullanıcı zaten /roblox-bağla yaparken profil açıklamasıyla doğrulama yapmak zorunda.
+  
+  return { username: botUsername };
 }
 
 async function handleRankQuery(interaction) {
