@@ -846,7 +846,7 @@ async function checkRankPermissions(discordUserId, targetRank) {
   if (!managerUsername) {
     return { 
       allowed: false, 
-      embed: createErrorEmbed('Discord hesabınız bir Roblox hesabına bağlı değil! Önce `/roblox-bağla` komutunu kullanarak hesabınızı bağlayın.')
+      embed: createErrorEmbed('RoWifi ile hesabını doğrulamamışsın veya bilgilerin güncel değil. `/yenile` komutunu kullanarak bilgilerini güncelle veya kaydet.')
     };
   }
 
@@ -854,7 +854,7 @@ async function checkRankPermissions(discordUserId, targetRank) {
   if (!managerId) {
     return { 
       allowed: false, 
-      embed: createErrorEmbed('Bağlı Roblox kullanıcısı bulunamadı! Hesap bağlantınızı kontrol edin.')
+      embed: createErrorEmbed('Bağlı Roblox kullanıcısı bulunamadı! `/yenile` komutunu kullanın.')
     };
   }
 
@@ -862,7 +862,7 @@ async function checkRankPermissions(discordUserId, targetRank) {
   if (!managerRank) {
     return { 
       allowed: false, 
-      embed: createErrorEmbed('Grupta olmayan kişiler rütbe veremez!')
+      embed: createErrorEmbed('Grupta olmayan kişiler rütbe işlemi yapamaz!')
     };
   }
 
@@ -870,13 +870,13 @@ async function checkRankPermissions(discordUserId, targetRank) {
   if (config.allowedRanks && !config.allowedRanks.includes(managerRank.rank)) {
     return { 
       allowed: false, 
-      embed: createErrorEmbed(`Sadece ${config.allowedRanks.join(', ')} seviye rütbeler rütbe işlemi yapabilir! (Sizin rütbeniz: ${managerRank.rank})`)
+      embed: createErrorEmbed(`Bu işlemi yapmak için yetkiniz yetersiz! (Gerekli rütbeler: ${config.allowedRanks.join(', ')})`)
     };
   }
 
   const maxAllowedRank = Math.min(managerRank.rank, config.maxRankCanAssign);
   
-  if (targetRank > maxAllowedRank) {
+  if (targetRank !== undefined && targetRank > maxAllowedRank) {
     return { 
       allowed: false, 
       embed: createErrorEmbed(`En fazla ${maxAllowedRank} seviye rütbe verebilirsiniz! (Hedef rütbe: ${targetRank})`)
@@ -998,6 +998,12 @@ async function handleRankChange(interaction) {
   if (!userId) {
     return interaction.editReply({ embeds: [createErrorEmbed('Hedef kullanıcı bulunamadı!')] });
   }
+
+  // Kendi rütbesini değiştirmeyi engelle
+  const managerUsername = getLinkedRobloxUsername(interaction.user.id);
+  if (robloxNick.toLowerCase() === managerUsername.toLowerCase()) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Kendi rütbenizi değiştiremezsiniz!')] });
+  }
   
   const currentRank = await robloxAPI.getUserRankInGroup(userId, config.groupId);
   
@@ -1086,8 +1092,9 @@ async function handleRankPromotion(interaction) {
     return interaction.editReply({ embeds: [permissionCheck.embed] });
   }
   
+  // Kendi rütbesini değiştirmeyi engelle
   if (userId === permissionCheck.managerId) {
-    return interaction.editReply({ embeds: [createErrorEmbed('Kendi rütbeni değiştiremezsin!')] });
+    return interaction.editReply({ embeds: [createErrorEmbed('Kendi rütbenizi değiştiremezsiniz!')] });
   }
   
   const result = await robloxAPI.setUserRole(userId, config.groupId, nextRole.id, ROBLOX_COOKIE);
@@ -1152,8 +1159,9 @@ async function handleRankDemotion(interaction) {
     return interaction.editReply({ embeds: [permissionCheck.embed] });
   }
   
+  // Kendi rütbesini değiştirmeyi engelle
   if (userId === permissionCheck.managerId) {
-    return interaction.editReply({ embeds: [createErrorEmbed('Kendi rütbeni değiştiremezsin!')] });
+    return interaction.editReply({ embeds: [createErrorEmbed('Kendi rütbenizi değiştiremezsiniz!')] });
   }
   
   const result = await robloxAPI.setUserRole(userId, config.groupId, prevRole.id, ROBLOX_COOKIE);
@@ -1396,7 +1404,7 @@ async function handleBranchRankChange(interaction) {
   }
   
   if (userId === managerId) {
-    return interaction.editReply({ embeds: [createErrorEmbed('Kendi rütbeni değiştiremezsin!')] });
+    return interaction.editReply({ embeds: [createErrorEmbed('Kendi rütbenizi değiştiremezsiniz!')] });
   }
   
   const result = await robloxAPI.setUserRole(userId, branchGroupId, targetRole.id, ROBLOX_COOKIE);
