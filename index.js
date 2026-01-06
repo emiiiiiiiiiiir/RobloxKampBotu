@@ -910,10 +910,10 @@ async function handleVerificationButton(interaction) {
       savePendingVerifications(verifications);
 
       const embed = new EmbedBuilder()
-        .setTitle('🎉 Tebrikler! Doğrulama Başarılı')
-        .setDescription(`Roblox hesabınız (**${verification.username}**) başarıyla bot sistemine bağlandı.\n\nArtık tüm komutları bu hesap üzerinden yönetebilirsiniz.`)
+        .setTitle('Doğrulama Başarılı')
+        .setDescription(`Roblox hesabınız (**${verification.username}**) başarıyla bot sistemine bağlandı.`)
         .setThumbnail(`https://www.roblox.com/headshot-thumbnail/image?userId=${verification.robloxId}&width=420&height=420&format=png`)
-        .setColor(0x57F287)
+        .setColor(0x2B2D31)
         .setFooter({ text: 'Bağlantı Tamamlandı', iconURL: interaction.user.displayAvatarURL() })
         .setTimestamp();
       
@@ -1062,10 +1062,10 @@ async function handleRobloxChange(interaction) {
           saveAccountLinks(links);
           return interaction.reply({ 
             embeds: [new EmbedBuilder()
-              .setTitle('✅ İşlem Başarılı')
-              .setDescription(`**${newRobloxNick}** hesabınız RoWifi üzerinden otomatik olarak tanındı ve bot sistemine başarıyla kaydedildi.\n\nArtık botun tüm özelliklerini bu hesapla kullanabilirsiniz.`)
+              .setTitle('İşlem Başarılı')
+              .setDescription(`**${newRobloxNick}** hesabınız RoWifi üzerinden otomatik olarak tanındı ve bot sistemine başarıyla kaydedildi.`)
               .setThumbnail(`https://www.roblox.com/headshot-thumbnail/image?userId=${response.data.roblox_id}&width=420&height=420&format=png`)
-              .setColor(0x57F287)
+              .setColor(0x2B2D31)
               .setFooter({ text: 'RoWifi Entegrasyonu Aktif', iconURL: interaction.user.displayAvatarURL() })
               .setTimestamp()],
             flags: 64 
@@ -1076,8 +1076,8 @@ async function handleRobloxChange(interaction) {
         return interaction.reply({
           embeds: [new EmbedBuilder()
             .setTitle('Rowifi Kaydı Bulunamadı')
-            .setDescription(`**${interaction.user.tag}**, RoWifi üzerinde bir Roblox hesabınızın bağlı olmadığı tespit edildi.\n\nLütfen önce RoWifi üzerinden hesabınızı bağlayın, ardından bu komutu tekrar kullanın.`)
-            .setColor(0xED4245)],
+            .setDescription(`**${interaction.user.tag}**, RoWifi üzerinde bir Roblox hesabınızın bağlı olmadığı tespit edildi.`)
+            .setColor(0x2B2D31)],
           flags: 64
         });
       }
@@ -1105,20 +1105,19 @@ async function handleRobloxChange(interaction) {
   savePendingVerifications(verifications);
 
   const embed = new EmbedBuilder()
-    .setTitle('🔐 Hesap Doğrulama Gerekli')
-    .setDescription(`Merhaba **${interaction.user.username}**,\n\n**${newRobloxNick}** hesabını bot sistemine bağlamak üzeresin. Güvenlik önlemi olarak bu hesabın sana ait olduğunu doğrulamamız gerekiyor.\n\n### 📝 Adımlar:\n1️⃣ Aşağıdaki kodu kopyala.\n2️⃣ Roblox profilindeki **Hakkında (Bio)** kısmına yapıştır.\n3️⃣ Profilini kaydet ve aşağıdaki **Doğrula** butonuna bas.\n\n**Doğrulama Kodu:**\n\`\`\`\n${code}\n\`\`\``)
-    .setColor(0x5865F2)
+    .setTitle('Hesap Doğrulama')
+    .setDescription(`**${newRobloxNick}** hesabını bot sistemine bağlamak için lütfen aşağıdaki kodu Roblox profil açıklamanıza (Bio) ekleyin ve **Doğrula** butonuna basın.\n\n**Doğrulama Kodu**\n\`\`\`\n${code}\n\`\`\``)
+    .setColor(0x2B2D31)
     .setThumbnail(`https://www.roblox.com/headshot-thumbnail/image?userId=${userId}&width=420&height=420&format=png`)
-    .setFooter({ text: '⏳ Bu işlem 10 dakika içinde tamamlanmalıdır.', iconURL: interaction.user.displayAvatarURL() })
+    .setFooter({ text: 'İşlem süresi: 10 dakika', iconURL: interaction.user.displayAvatarURL() })
     .setTimestamp();
 
   const row = new ActionRowBuilder()
     .addComponents(
       new ButtonBuilder()
         .setCustomId(`verify_link_${discordUserId}`)
-        .setLabel('Hesabı Doğrula')
-        .setEmoji('✅')
-        .setStyle(ButtonStyle.Success)
+        .setLabel('Doğrula')
+        .setStyle(ButtonStyle.Secondary)
     );
 
   await interaction.reply({ embeds: [embed], components: [row], flags: 64 });
