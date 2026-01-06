@@ -1371,29 +1371,33 @@ async function handleBranchActivityQuery(interaction) {
   }
 
   const teams = [
-    { name: '🔵 Deniz Kuvvetleri Komutanlığı', key: 'DKK' },
-    { name: '🟢 Kara Kuvvetleri Komutanlığı', key: 'KKK' },
-    { name: '🔴 Hava Kuvvetleri Komutanlığı', key: 'HKK' },
-    { name: '⚔️ Özel Kuvvetler Komutanlığı', key: 'OKK' },
-    { name: '🚔 Jandarma Genel Komutanlığı', key: 'JGK' },
-    { name: '🛡️ Askeri İnzibat', key: 'ASIZ' }
+    { name: 'Deniz Kuvvetleri Komutanlığı', key: 'DKK' },
+    { name: 'Kara Kuvvetleri Komutanlığı', key: 'KKK' },
+    { name: 'Hava Kuvvetleri Komutanlığı', key: 'HKK' },
+    { name: 'Özel Kuvvetler Komutanlığı', key: 'OKK' },
+    { name: 'Jandarma Genel Komutanlığı', key: 'JGK' },
+    { name: 'Askeri İnzibat', key: 'ASIZ' }
   ];
 
   const embed = new EmbedBuilder()
-    .setTitle('Anlık Branş Aktifliği')
-    .setDescription(`**${activity.name}** oyunundaki takımların aktiflik durumu:`)
-    .setColor(0x5865F2)
+    .setTitle('BRANŞ AKTİFLİK RAPORU')
+    .setDescription(`**${activity.name.toUpperCase()}** sunucusundaki birimlerin anlık mevcudu aşağıda listelenmiştir.`)
+    .setColor(0x2B2D31) // Modern koyu gri/siyah tema
     .setTimestamp();
 
+  let teamListText = '';
   teams.forEach(team => {
     const count = teamData.teams[team.key] !== undefined ? teamData.teams[team.key] : '0';
-    embed.addFields({ name: team.name, value: `Aktif: \`${count}\``, inline: true });
+    teamListText += `**${team.name}**\n└ Mevcut: \`${count}\` personel\n\n`;
   });
 
-  const lastUpdate = teamData.last_update > 0 ? `<t:${Math.floor(teamData.last_update / 1000)}:R>` : 'Veri yok';
-  
-  embed.addFields({ name: '📊 Toplam Aktiflik', value: `\`${activity.playing}\` Oyuncu`, inline: false });
-  embed.setFooter({ text: `Son Güncelleme: ${lastUpdate}` });
+  embed.addFields(
+    { name: 'BİRİMLER', value: teamListText || 'Veri bulunamadı.', inline: false },
+    { name: 'TOPLAM SUNUCU MEVCUDU', value: `\`${activity.playing}\` / \`${activity.maxPlayers}\``, inline: false }
+  );
+
+  const lastUpdate = teamData.last_update > 0 ? `<t:${Math.floor(teamData.last_update / 1000)}:R>` : 'Veri senkronize edilmedi';
+  embed.setFooter({ text: `Sistem Durumu: Çevrimiçi | Son Güncelleme: ${teamData.last_update > 0 ? new Date(teamData.last_update).toLocaleTimeString('tr-TR') : 'Yok'}` });
   
   await interaction.editReply({ embeds: [embed] });
 }
