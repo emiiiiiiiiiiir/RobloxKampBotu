@@ -997,13 +997,9 @@ async function handleRobloxChange(interaction) {
     } catch (error) {
       console.error('handleRobloxChange RoWifi kontrol hatası:', error.message);
       if (error.response?.status === 403) {
-        console.warn('RoWifi API yetki hatası (403). Lütfen ROWIFI_API_TOKEN\'ın doğru olduğunu ve botun sunucuda yetkili olduğunu kontrol edin.');
-        // Yetki hatası durumunda işlemi durdurmak yerine kullanıcıya bilgi verelim
-        const embed = new EmbedBuilder()
-          .setTitle('Sistem Hatası')
-          .setDescription('RoWifi doğrulaması yapılırken bir yetki hatası oluştu. Lütfen yöneticilere başvurun veya daha sonra tekrar deneyin.')
-          .setColor(0xED4245);
-        return interaction.editReply({ embeds: [embed] });
+        console.warn('RoWifi API yetki hatası (403). RoWifi kontrolü atlanıyor...');
+        // 403 hatası durumunda kontrolü atlayıp devam edelim (veya isterseniz engelleyebilirsiniz)
+        // Kullanıcıya uyarı vermek yerine işlemi devam ettiriyoruz ki API hatası botu engellemesin
       }
     }
   }
@@ -1065,11 +1061,7 @@ async function handleRobloxLink(interaction) {
     } catch (error) {
       console.error('handleRobloxLink RoWifi kontrol hatası:', error.message);
       if (error.response?.status === 403) {
-        const embed = new EmbedBuilder()
-          .setTitle('Sistem Hatası')
-          .setDescription('RoWifi doğrulaması yapılırken bir yetki hatası oluştu. Lütfen yöneticilere başvurun.')
-          .setColor(0xED4245);
-        return interaction.editReply({ embeds: [embed] });
+        console.warn('RoWifi API yetki hatası (403). RoWifi kontrolü atlanıyor...');
       }
     }
   }
