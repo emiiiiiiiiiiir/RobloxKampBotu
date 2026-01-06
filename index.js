@@ -1325,10 +1325,10 @@ async function handleActivityQuery(interaction) {
 async function handleBranchActivityQuery(interaction) {
   await interaction.deferReply();
   
-  // Not: Bu komutun tam çalışması için oyunun Developer Product veya benzeri bir yöntemle 
-  // takımların sayılarını dışarı vermesi gerekir. 
-  // Mevcut Roblox API kısıtlamaları nedeniyle doğrudan "Team" bazlı oyuncu sayısını çekemeyiz.
-  // Bu nedenle ana aktiflik bilgisini detaylı bir şekilde sunalım.
+  // Roblox API'den Universe ID ve anlık oyuncu listesini almaya çalışalım.
+  // Not: Standart API takım bazlı sayıyı vermez, bu yüzden toplam sayıyı 
+  // branşlara (takımlara) göre tahmini veya genel dağılım olarak gösterelim.
+  // Eğer oyun içi bir veritabanı olsaydı oradan çekebilirdik.
   
   const activity = await robloxAPI.getGameActivity(config.gameId);
   
@@ -1336,20 +1336,29 @@ async function handleBranchActivityQuery(interaction) {
     return interaction.editReply({ embeds: [createErrorEmbed('Oyun bilgisi alınamadı!')] });
   }
 
-  // Not: Eğer oyun içi team verilerini çeken bir sistem (örn: external database veya özel API)
-  // varsa burası güncellenebilir. Şimdilik genel aktifliği branş bazlı rapor gibi sunuyoruz.
-  
+  // AEK Branşları ve Takımları
+  const teams = [
+    { name: '🔵 Deniz Kuvvetleri Komutanlığı', count: '??' },
+    { name: '🟢 Kara Kuvvetleri Komutanlığı', count: '??' },
+    { name: '🔴 Hava Kuvvetleri Komutanlığı', count: '??' },
+    { name: '⚔️ Özel Kuvvetler Komutanlığı', count: '??' },
+    { name: '🚔 Jandarma Genel Komutanlığı', count: '??' },
+    { name: '🛡️ Askeri İnzibat', count: '??' }
+  ];
+
   const embed = new EmbedBuilder()
-    .setTitle('Branş Aktiflik Sorgusu')
-    .setDescription(`**${activity.name}** oyunundaki genel aktiflik durumu aşağıdadır:`)
-    .addFields(
-      { name: 'Toplam Oyuncu', value: `👤 ${activity.playing} / ${activity.maxPlayers}`, inline: true },
-      { name: 'Toplam Ziyaret', value: `📈 ${activity.visits.toLocaleString()}`, inline: true },
-      { name: 'Sunucu Durumu', value: '🟢 Aktif', inline: true }
-    )
-    .setFooter({ text: 'Not: Takım bazlı detaylar için oyun içi API entegrasyonu gereklidir.' })
+    .setTitle('Anlık Branş Aktifliği')
+    .setDescription(`**${activity.name}** oyunundaki takımların aktiflik durumu:`)
     .setColor(0x5865F2)
     .setTimestamp();
+
+  // Her takım için bir alan ekle
+  teams.forEach(team => {
+    embed.addFields({ name: team.name, value: `Aktif: \`${team.count}\``, inline: true });
+  });
+
+  embed.addFields({ name: '📊 Toplam Aktiflik', value: `\`${activity.playing}\` Oyuncu`, inline: false });
+  embed.setFooter({ text: 'Not: Takım bazlı kesin sayılar için oyun içi sistem gereklidir.' });
   
   await interaction.editReply({ embeds: [embed] });
 }
