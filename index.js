@@ -1206,36 +1206,23 @@ async function handleRankChange(interaction) {
   const targetRankName = interaction.options.getString('rütbe');
   const reason = interaction.options.getString('sebep');
   
-  const userId = await robloxAPI.getUserIdByUsername(robloxNick);
-  if (!userId) {
+  const targetUserId = await robloxAPI.getUserIdByUsername(robloxNick);
+  if (!targetUserId) {
     return interaction.editReply({ embeds: [createErrorEmbed('Hedef kullanıcı bulunamadı!')] });
   }
 
-  // Kendi rütbesini değiştirmeyi engelle
-  const managerUsername = getLinkedRobloxUsername(interaction.user.id);
-  if (robloxNick.toLowerCase() === managerUsername.toLowerCase()) {
-    return interaction.editReply({ embeds: [createErrorEmbed('Kendi rütbenizi değiştiremezsiniz!')] });
-  }
-  
-  const currentRank = await robloxAPI.getUserRankInGroup(userId, config.groupId);
-  
-  const roles = await robloxAPI.getGroupRoles(config.groupId);
-  if (!roles) {
-    return interaction.editReply({ embeds: [createErrorEmbed('Grup rütbeleri alınamadı! Grup ID\'sini kontrol edin.')] });
-  }
-  
-  const targetRole = roles.find(r => r.name.toLowerCase() === targetRankName.toLowerCase());
-  
-  if (!targetRole) {
-    return interaction.editReply({ embeds: [createErrorEmbed('Belirtilen rütbe bulunamadı!')] });
-  }
-  
   const permissionCheck = await checkRankPermissions(interaction.user.id, targetRole.rank);
   if (!permissionCheck.allowed) {
     return interaction.editReply({ embeds: [permissionCheck.embed] });
   }
+
+  // Hedef kişinin rütbesini kontrol et
+  const targetRank = await robloxAPI.getUserRankInGroup(targetUserId, config.groupId);
+  if (targetRank && targetRank.rank >= permissionCheck.managerRank.rank) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Sizden üst veya sizinle aynı rütbede olan birine işlem yapamazsınız!')] });
+  }
   
-  if (userId === permissionCheck.managerId) {
+  if (targetUserId === permissionCheck.managerId) {
     return interaction.editReply({ embeds: [createErrorEmbed('Kendi rütbeni değiştiremezsin!')] });
   }
   

@@ -3,7 +3,7 @@
   "gameId": "92340809504354",
   "adminRoleIds": ["1430254758110826547, 1420425067212574720"],
   "allowedRanks": [36, 37, 38, 39],
-  "maxRankCanAssign": 250,
+  "maxRankCanAssign": 39,
   "branchGroups": {
     "DKK": "312435226",
     "KKK": "40576735",
