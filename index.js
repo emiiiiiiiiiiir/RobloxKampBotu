@@ -830,6 +830,8 @@ client.on('interactionCreate', async (interaction) => {
         await handleTicketClose(interaction);
       } else if (interaction.customId === 'claim_ticket') {
         await handleTicketClaim(interaction);
+      } else if (interaction.customId.startsWith('verify_link_')) {
+        await handleVerificationButton(interaction);
       } else if (interaction.customId.startsWith('rate_ticket_')) {
         const parts = interaction.customId.split('_');
         const rating = parseInt(parts[2]);
@@ -852,6 +854,75 @@ client.on('interactionCreate', async (interaction) => {
     }
   }
 });
+
+async function handleTicketRating(interaction, rating, ticketOwnerId) {
+  const parts = interaction.customId.split('_');
+  const ticketId = parts[4];
+  
+  if (interaction.user.id !== ticketOwnerId) {
+    return interaction.reply({ content: 'HATA: Sadece ticket sahibi puan verebilir!', flags: 64 });
+  }
+
+  const embed = new EmbedBuilder()
+    .setTitle('Puanınız Kaydedildi')
+    .setDescription(`Desteğimiz için **${rating} yıldız** verdiğiniz için teşekkür ederiz!`)
+    .setColor(0x57F287)
+    .setTimestamp();
+
+  await interaction.update({ components: [] });
+  await interaction.followUp({ embeds: [embed], flags: 64 });
+  
+  // Log kanalına puanı gönder
+  if (config.ticketLogChannelId) {
+    const logChannel = interaction.guild.channels.cache.get(config.ticketLogChannelId);
+    if (logChannel) {
+      const logEmbed = new EmbedBuilder()
+        .setTitle('Ticket Puanlandı')
+        .addFields(
+          { name: 'Kullanıcı', value: `<@${interaction.user.id}>`, inline: true },
+          { name: 'Puan', value: '⭐'.repeat(rating), inline: true }
+        )
+        .setColor(0x5865F2)
+        .setTimestamp();
+      await logChannel.send({ embeds: [logEmbed] });
+    }
+  }
+}
+
+async function handleVerificationButton(interaction) {
+  await interaction.deferReply({ flags: 64 });
+  const discordUserId = interaction.user.id;
+  const verifications = loadPendingVerifications();
+  const verification = verifications[discordUserId];
+
+  if (!verification) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Bekleyen bir doğrulama işleminiz bulunmuyor.')] });
+  }
+
+  const isVerified = await robloxAPI.verifyUserOwnership(verification.robloxId, verification.code);
+
+  if (isVerified) {
+    const links = loadAccountLinks();
+    links[discordUserId] = verification.username;
+    
+    if (saveAccountLinks(links)) {
+      delete verifications[discordUserId];
+      savePendingVerifications(verifications);
+
+      const embed = new EmbedBuilder()
+        .setTitle('Doğrulama Başarılı')
+        .setDescription(`Roblox hesabınız (**${verification.username}**) başarıyla bot sistemine bağlandı.`)
+        .setColor(0x57F287)
+        .setTimestamp();
+      
+      await interaction.editReply({ embeds: [embed] });
+    } else {
+      await interaction.editReply({ embeds: [createErrorEmbed('Hesap kaydedilirken bir hata oluştu!')] });
+    }
+  } else {
+    await interaction.editReply({ embeds: [createErrorEmbed('Doğrulama başarısız! Lütfen kodu profil açıklamanıza eklediğinizden emin olun.')] });
+  }
+}
 
 async function checkRankPermissions(discordUserId, targetRank) {
   const managerUsername = getLinkedRobloxUsername(discordUserId);
@@ -966,14 +1037,12 @@ async function handleRobloxChange(interaction) {
     return interaction.reply({ content: 'HATA: Bu komut sadece |AEK| Turkish Armed Forces\'a bağlı sunucularda kullanılabilir.', flags: 64 });
   }
   
-  await interaction.deferReply({ flags: 64 });
-  
   const newRobloxNick = interaction.options.getString('kişi');
   const discordUserId = interaction.user.id;
   const guildId = interaction.guildId;
   const rowifiToken = process.env.ROWIFI_API_TOKEN;
 
-  // 1. RoWifi kontrolü
+  // 1. RoWifi kontrolü (Zaten aynı hesapsa geç)
   if (rowifiToken && rowifiToken !== 'ROWIFI_API_TOKEN_BURAYA') {
     try {
       const response = await axios.get(`https://api.rowifi.xyz/v2/guilds/${guildId}/members/${discordUserId}`, {
@@ -984,106 +1053,62 @@ async function handleRobloxChange(interaction) {
       if (response.data && response.data.roblox_id) {
         const robloxInfo = await robloxAPI.getUserInfo(response.data.roblox_id);
         
-        // Eğer RoWifi hesabı ile yeni istenen hesap farklıysa uyarı ver
-        if (robloxInfo && robloxInfo.name.toLowerCase() !== newRobloxNick.toLowerCase()) {
-          const embed = new EmbedBuilder()
-            .setTitle('Rowifi Hesap Uyuşmazlığı')
-            .setDescription(`Tespit edilen RoWifi hesabınız (**${robloxInfo.name}**), değiştirmek istediğiniz (**${newRobloxNick}**) hesabı ile eşleşmiyor.\n\nLütfen önce RoWifi üzerinden hesabınızı güncelleyin, ardından bu komutu tekrar kullanın.`)
-            .setColor(0xED4245)
-            .setTimestamp();
-          return interaction.editReply({ embeds: [embed] });
+        if (robloxInfo && robloxInfo.name.toLowerCase() === newRobloxNick.toLowerCase()) {
+          // RoWifi ile aynı hesabı bağlamaya çalışıyorsa kod sormadan bağla
+          const links = loadAccountLinks();
+          links[discordUserId] = newRobloxNick;
+          saveAccountLinks(links);
+          return interaction.reply({ 
+            embeds: [new EmbedBuilder()
+              .setTitle('Hesap Güncellendi')
+              .setDescription(`RoWifi ile doğrulanmış hesabınız (**${newRobloxNick}**) başarıyla bot sistemine kaydedildi.`)
+              .setColor(0x57F287)],
+            flags: 64 
+          });
         }
       }
     } catch (error) {
       console.error('handleRobloxChange RoWifi kontrol hatası:', error.message);
-      if (error.response?.status === 403) {
-        console.warn('RoWifi API yetki hatası (403). RoWifi kontrolü atlanıyor...');
-        // 403 hatası durumunda kontrolü atlayıp devam edelim (veya isterseniz engelleyebilirsiniz)
-        // Kullanıcıya uyarı vermek yerine işlemi devam ettiriyoruz ki API hatası botu engellemesin
-      }
     }
   }
 
-  // 2. Roblox ID kontrolü
+  // 2. Manuel Doğrulama (Profil açıklaması)
   const userId = await robloxAPI.getUserIdByUsername(newRobloxNick);
   if (!userId) {
-    return interaction.editReply({ embeds: [createErrorEmbed('Roblox kullanıcısı bulunamadı!')] });
+    return interaction.reply({ embeds: [createErrorEmbed('Roblox kullanıcısı bulunamadı!')], flags: 64 });
   }
 
-  // 3. Bot veritabanını güncelle
-  const links = loadAccountLinks();
-  links[discordUserId] = newRobloxNick;
+  const verifications = loadPendingVerifications();
+  const code = generateVerificationCode();
   
-  if (saveAccountLinks(links)) {
-    const embed = new EmbedBuilder()
-      .setTitle('Hesap Değiştirildi')
-      .setDescription(`Bağlı Roblox hesabınız başarıyla **${newRobloxNick}** olarak değiştirildi.`)
-      .setColor(0x57F287)
-      .setTimestamp();
-    await interaction.editReply({ embeds: [embed] });
-  } else {
-    await interaction.editReply({ embeds: [createErrorEmbed('Hesap kaydedilirken bir hata oluştu!')] });
-  }
+  verifications[discordUserId] = {
+    robloxId: userId,
+    username: newRobloxNick,
+    code: code,
+    timestamp: Date.now()
+  };
+  
+  savePendingVerifications(verifications);
+
+  const embed = new EmbedBuilder()
+    .setTitle('Hesap Doğrulama Gerekli')
+    .setDescription(`**${newRobloxNick}** hesabını bağlamak için lütfen aşağıdaki kodu Roblox profil açıklamanıza ekleyin ve **Doğrula** butonuna basın.\n\n**Kod:** \`${code}\``)
+    .setColor(0x5865F2)
+    .setFooter({ text: '10 dakika içinde doğrulanmalıdır.' });
+
+  const row = new ActionRowBuilder()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId(`verify_link_${discordUserId}`)
+        .setLabel('Doğrula')
+        .setStyle(ButtonStyle.Primary)
+    );
+
+  await interaction.reply({ embeds: [embed], components: [row], flags: 64 });
 }
 
 async function handleRobloxLink(interaction) {
-  if (!interaction.guild.name.includes('AEK')) {
-    return interaction.reply({ content: 'HATA: Bu komut sadece |AEK| Turkish Armed Forces\'a bağlı sunucularda kullanılabilir.', flags: 64 });
-  }
-  
-  await interaction.deferReply({ flags: 64 });
-  
-  const robloxNick = interaction.options.getString('kişi');
-  const discordUserId = interaction.user.id;
-  const guildId = interaction.guildId;
-  const rowifiToken = process.env.ROWIFI_API_TOKEN;
-
-  // 1. RoWifi kontrolü
-  if (rowifiToken && rowifiToken !== 'ROWIFI_API_TOKEN_BURAYA') {
-    try {
-      const response = await axios.get(`https://api.rowifi.xyz/v2/guilds/${guildId}/members/${discordUserId}`, {
-        headers: { 'Authorization': `Bearer ${rowifiToken}` },
-        timeout: 5000
-      });
-
-      if (response.data && response.data.roblox_id) {
-        const robloxInfo = await robloxAPI.getUserInfo(response.data.roblox_id);
-        
-        if (robloxInfo && robloxInfo.name.toLowerCase() !== robloxNick.toLowerCase()) {
-          const embed = new EmbedBuilder()
-            .setTitle('Rowifi Hesap Uyuşmazlığı')
-            .setDescription(`Tespit edilen RoWifi hesabınız (**${robloxInfo.name}**), bağlamak istediğiniz (**${robloxNick}**) hesabı ile eşleşmiyor.\n\nLütfen önce RoWifi üzerinden hesabınızı bağlayın veya güncelleyin.`)
-            .setColor(0xED4245)
-            .setTimestamp();
-          return interaction.editReply({ embeds: [embed] });
-        }
-      }
-    } catch (error) {
-      console.error('handleRobloxLink RoWifi kontrol hatası:', error.message);
-      if (error.response?.status === 403) {
-        console.warn('RoWifi API yetki hatası (403). RoWifi kontrolü atlanıyor...');
-      }
-    }
-  }
-
-  const userId = await robloxAPI.getUserIdByUsername(robloxNick);
-  if (!userId) {
-    return interaction.editReply({ embeds: [createErrorEmbed('Roblox kullanıcısı bulunamadı!')] });
-  }
-
-  const links = loadAccountLinks();
-  links[discordUserId] = robloxNick;
-  
-  if (saveAccountLinks(links)) {
-    const embed = new EmbedBuilder()
-      .setTitle('Hesap Bağlandı')
-      .setDescription(`Roblox hesabınız (**${robloxNick}**) başarıyla bot sistemine bağlandı.`)
-      .setColor(0x57F287)
-      .setTimestamp();
-    await interaction.editReply({ embeds: [embed] });
-  } else {
-    await interaction.editReply({ embeds: [createErrorEmbed('Hesap kaydedilirken bir hata oluştu!')] });
-  }
+  return handleRobloxChange(interaction);
 }
 
 async function handleYenile(interaction) {
