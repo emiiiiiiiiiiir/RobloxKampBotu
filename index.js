@@ -957,10 +957,10 @@ async function checkAccountSync(interaction) {
 
 async function handleRobloxChange(interaction) {
   if (!interaction.guild.name.includes('AEK')) {
-    return interaction.reply({ content: 'HATA: Bu komut sadece |AEK| Turkish Armed Forces\'a bağlı sunucularda kullanılabilir.', ephemeral: true });
+    return interaction.reply({ content: 'HATA: Bu komut sadece |AEK| Turkish Armed Forces\'a bağlı sunucularda kullanılabilir.', flags: 64 });
   }
   
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
   
   const newRobloxNick = interaction.options.getString('kişi');
   const discordUserId = interaction.user.id;
@@ -1017,10 +1017,10 @@ async function handleRobloxChange(interaction) {
 
 async function handleRobloxLink(interaction) {
   if (!interaction.guild.name.includes('AEK')) {
-    return interaction.reply({ content: 'HATA: Bu komut sadece |AEK| Turkish Armed Forces\'a bağlı sunucularda kullanılabilir.', ephemeral: true });
+    return interaction.reply({ content: 'HATA: Bu komut sadece |AEK| Turkish Armed Forces\'a bağlı sunucularda kullanılabilir.', flags: 64 });
   }
   
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
   
   const robloxNick = interaction.options.getString('kişi');
   const discordUserId = interaction.user.id;
@@ -1073,7 +1073,7 @@ async function handleRobloxLink(interaction) {
 }
 
 async function handleYenile(interaction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: 64 });
   
   const discordUserId = interaction.user.id;
   const botUsername = getLinkedRobloxUsername(discordUserId);
