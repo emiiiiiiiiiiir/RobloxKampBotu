@@ -759,19 +759,25 @@ client.on('interactionCreate', async (interaction) => {
           break;
       }
     } catch (error) {
+      if (error.code === 10062) {
+        console.warn(`Etkileşim zaman aşımına uğradı (${commandName}), ancak işlem arka planda devam etmiş olabilir.`);
+        return;
+      }
       console.error(`Komut hatası (${commandName}):`, error);
       
       try {
-        if (interaction.deferred || interaction.replied) {
-          await interaction.editReply({ embeds: [createErrorEmbed('Bir hata oluştu!')] });
-        } else {
+        if (!interaction.replied && !interaction.deferred) {
           await interaction.reply({ 
             content: 'HATA: Bir hata oluştu!', 
             flags: 64
           });
+        } else if (interaction.deferred || interaction.replied) {
+          await interaction.editReply({ embeds: [createErrorEmbed('Bir hata oluştu!')] });
         }
       } catch (replyError) {
-        console.error('Hata mesajı gönderilemedi:', replyError.message);
+        if (replyError.code !== 10062) {
+          console.error('Hata mesajı gönderilemedi:', replyError.message);
+        }
       }
     }
   }
