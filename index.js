@@ -910,9 +910,11 @@ async function handleVerificationButton(interaction) {
       savePendingVerifications(verifications);
 
       const embed = new EmbedBuilder()
-        .setTitle('Doğrulama Başarılı')
-        .setDescription(`Roblox hesabınız (**${verification.username}**) başarıyla bot sistemine bağlandı.`)
+        .setTitle('🎉 Tebrikler! Doğrulama Başarılı')
+        .setDescription(`Roblox hesabınız (**${verification.username}**) başarıyla bot sistemine bağlandı.\n\nArtık tüm komutları bu hesap üzerinden yönetebilirsiniz.`)
+        .setThumbnail(`https://www.roblox.com/headshot-thumbnail/image?userId=${verification.robloxId}&width=420&height=420&format=png`)
         .setColor(0x57F287)
+        .setFooter({ text: 'Bağlantı Tamamlandı', iconURL: interaction.user.displayAvatarURL() })
         .setTimestamp();
       
       await interaction.editReply({ embeds: [embed] });
@@ -1060,9 +1062,12 @@ async function handleRobloxChange(interaction) {
           saveAccountLinks(links);
           return interaction.reply({ 
             embeds: [new EmbedBuilder()
-              .setTitle('Hesap Güncellendi')
-              .setDescription(`RoWifi ile doğrulanmış hesabınız (**${newRobloxNick}**) başarıyla bot sistemine kaydedildi.`)
-              .setColor(0x57F287)],
+              .setTitle('✅ İşlem Başarılı')
+              .setDescription(`**${newRobloxNick}** hesabınız RoWifi üzerinden otomatik olarak tanındı ve bot sistemine başarıyla kaydedildi.\n\nArtık botun tüm özelliklerini bu hesapla kullanabilirsiniz.`)
+              .setThumbnail(`https://www.roblox.com/headshot-thumbnail/image?userId=${response.data.roblox_id}&width=420&height=420&format=png`)
+              .setColor(0x57F287)
+              .setFooter({ text: 'RoWifi Entegrasyonu Aktif', iconURL: interaction.user.displayAvatarURL() })
+              .setTimestamp()],
             flags: 64 
           });
         }
@@ -1100,17 +1105,20 @@ async function handleRobloxChange(interaction) {
   savePendingVerifications(verifications);
 
   const embed = new EmbedBuilder()
-    .setTitle('Hesap Doğrulama Gerekli')
-    .setDescription(`**${newRobloxNick}** hesabını bağlamak için lütfen aşağıdaki kodu Roblox profil açıklamanıza ekleyin ve **Doğrula** butonuna basın.\n\n**Kod:** \`${code}\``)
+    .setTitle('🔐 Hesap Doğrulama Gerekli')
+    .setDescription(`Merhaba **${interaction.user.username}**,\n\n**${newRobloxNick}** hesabını bot sistemine bağlamak üzeresin. Güvenlik önlemi olarak bu hesabın sana ait olduğunu doğrulamamız gerekiyor.\n\n### 📝 Adımlar:\n1️⃣ Aşağıdaki kodu kopyala.\n2️⃣ Roblox profilindeki **Hakkında (Bio)** kısmına yapıştır.\n3️⃣ Profilini kaydet ve aşağıdaki **Doğrula** butonuna bas.\n\n**Doğrulama Kodu:**\n\`\`\`\n${code}\n\`\`\``)
     .setColor(0x5865F2)
-    .setFooter({ text: '10 dakika içinde doğrulanmalıdır.' });
+    .setThumbnail(`https://www.roblox.com/headshot-thumbnail/image?userId=${userId}&width=420&height=420&format=png`)
+    .setFooter({ text: '⏳ Bu işlem 10 dakika içinde tamamlanmalıdır.', iconURL: interaction.user.displayAvatarURL() })
+    .setTimestamp();
 
   const row = new ActionRowBuilder()
     .addComponents(
       new ButtonBuilder()
         .setCustomId(`verify_link_${discordUserId}`)
-        .setLabel('Doğrula')
-        .setStyle(ButtonStyle.Primary)
+        .setLabel('Hesabı Doğrula')
+        .setEmoji('✅')
+        .setStyle(ButtonStyle.Success)
     );
 
   await interaction.reply({ embeds: [embed], components: [row], flags: 64 });
