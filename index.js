@@ -1066,6 +1066,15 @@ async function handleRobloxChange(interaction) {
             flags: 64 
           });
         }
+      } else {
+        // RoWifi kaydı yoksa veya ID boşsa uyar
+        return interaction.reply({
+          embeds: [new EmbedBuilder()
+            .setTitle('Rowifi Kaydı Bulunamadı')
+            .setDescription(`**${interaction.user.tag}**, RoWifi üzerinde bir Roblox hesabınızın bağlı olmadığı tespit edildi.\n\nLütfen önce RoWifi üzerinden hesabınızı bağlayın, ardından bu komutu tekrar kullanın.`)
+            .setColor(0xED4245)],
+          flags: 64
+        });
       }
     } catch (error) {
       console.error('handleRobloxChange RoWifi kontrol hatası:', error.message);
