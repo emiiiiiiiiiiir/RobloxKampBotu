@@ -14,6 +14,9 @@ local SECRET = "AEK_SECRET_123" -- Bot tarafındakiyle aynı olmalı
 
 -- Takım isimlerini botun beklediği anahtarlarla eşleştirin
 local TeamMapping = {
+    ["Turk Silahli Kuvvetleri"] = "TSK",
+    ["Ordu Generalleri"] = "OG",
+    ["Ordu Subaylari"] = "OS",
     ["Deniz Kuvvetleri"] = "DKK",
     ["Kara Kuvvetleri"] = "KKK",
     ["Hava Kuvvetleri"] = "HKK",
@@ -24,7 +27,7 @@ local TeamMapping = {
 
 local function updateActivity()
     local teamCounts = {
-        DKK = 0, KKK = 0, HKK = 0, OKK = 0, JGK = 0, ASIZ = 0
+        TSK = 0, OG = 0, OS = 0, DKK = 0, KKK = 0, HKK = 0, OKK = 0, JGK = 0, ASIZ = 0
     }
     
     -- Takımları tara ve oyuncu sayılarını al

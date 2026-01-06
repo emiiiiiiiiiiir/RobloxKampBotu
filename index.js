@@ -1371,6 +1371,9 @@ async function handleBranchActivityQuery(interaction) {
   }
 
   const teams = [
+    { name: 'Türk Silahlı Kuvvetleri', key: 'TSK' },
+    { name: 'Ordu Generalleri', key: 'OG' },
+    { name: 'Ordu Subayları', key: 'OS' },
     { name: 'Deniz Kuvvetleri Komutanlığı', key: 'DKK' },
     { name: 'Kara Kuvvetleri Komutanlığı', key: 'KKK' },
     { name: 'Hava Kuvvetleri Komutanlığı', key: 'HKK' },
