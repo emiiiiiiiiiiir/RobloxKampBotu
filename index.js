@@ -1044,7 +1044,7 @@ async function handleRobloxChange(interaction) {
   const guildId = interaction.guildId;
   const rowifiToken = process.env.ROWIFI_API_TOKEN;
 
-  // 1. RoWifi kontrolü (Zaten aynı hesapsa geç)
+  // 1. RoWifi kontrolü
   if (rowifiToken && rowifiToken !== 'ROWIFI_API_TOKEN_BURAYA') {
     try {
       const response = await axios.get(`https://api.rowifi.xyz/v2/guilds/${guildId}/members/${discordUserId}`, {
@@ -1072,17 +1072,20 @@ async function handleRobloxChange(interaction) {
           });
         }
       } else {
-        // RoWifi kaydı yoksa veya ID boşsa uyar
+        // RoWifi kaydı yoksa uyar ve işlemi durdur
         return interaction.reply({
           embeds: [new EmbedBuilder()
-            .setTitle('Rowifi Kaydı Bulunamadı')
-            .setDescription(`**${interaction.user.tag}**, RoWifi üzerinde bir Roblox hesabınızın bağlı olmadığı tespit edildi.`)
+            .setTitle('RoWifi Kaydı Bulunamadı')
+            .setDescription(`**${interaction.user.username}**, RoWifi üzerinde bağlı bir Roblox hesabınız bulunamadı. Lütfen önce RoWifi üzerinden hesabınızı bağlayın.`)
             .setColor(0x2B2D31)],
           flags: 64
         });
       }
     } catch (error) {
       console.error('handleRobloxChange RoWifi kontrol hatası:', error.message);
+      if (error.response?.status === 403) {
+        console.warn('RoWifi API yetki hatası (403). RoWifi kontrolü atlanıyor...');
+      }
     }
   }
 
