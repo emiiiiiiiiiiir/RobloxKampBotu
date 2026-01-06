@@ -899,8 +899,13 @@ async function checkRankPermissions(discordUserId, targetRank) {
 }
 
 async function checkAccountSync(interaction) {
-  const botUsername = getLinkedRobloxUsername(interaction.user.id);
-  
+  const discordUserId = interaction.user.id;
+  const guildId = interaction.guildId;
+  const rowifiToken = process.env.ROWIFI_API_TOKEN;
+
+  // Botun kendi veritabanındaki (account_links.json) kullanıcı adını al
+  const botUsername = getLinkedRobloxUsername(discordUserId);
+
   if (!botUsername) {
     await interaction.editReply({ 
       embeds: [createErrorEmbed('RoWifi ile hesabını doğrulamamışsın veya bilgilerin güncel değil. `/yenile` komutunu kullanarak bilgilerini güncelle veya kaydet.')]
@@ -908,6 +913,35 @@ async function checkAccountSync(interaction) {
     return null;
   }
 
+  // Resmi RoWifi API üzerinden kontrol
+  if (rowifiToken && rowifiToken !== 'ROWIFI_API_TOKEN_BURAYA') {
+    try {
+      const response = await axios.get(`https://api.rowifi.xyz/v2/guilds/${guildId}/members/${discordUserId}`, {
+        headers: { 'Authorization': `Bearer ${rowifiToken}` },
+        timeout: 5000
+      });
+
+      if (response.data && response.data.roblox_id) {
+        // RoWifi'den gelen Roblox ID'sini kullanarak kullanıcı adını doğrula
+        const robloxInfo = await robloxAPI.getUserInfo(response.data.roblox_id);
+        
+        if (robloxInfo && robloxInfo.name.toLowerCase() === botUsername.toLowerCase()) {
+          return { username: botUsername, robloxId: response.data.roblox_id };
+        } else {
+          console.warn(`[Sync Warning] RoWifi mismatch: ${robloxInfo?.name} vs ${botUsername}`);
+          await interaction.editReply({ 
+            embeds: [createErrorEmbed('RoWifi ile hesabını doğrulamamışsın veya bilgilerin güncel değil. `/yenile` komutunu kullanarak bilgilerini güncelle veya kaydet.')]
+          });
+          return null;
+        }
+      }
+    } catch (error) {
+      console.error('RoWifi API hatası:', error.response?.data || error.message);
+      // API hatası durumunda nickname kontrolüne geri dön (yedek plan)
+    }
+  }
+
+  // API Token yoksa veya hata verdiyse Nickname kontrolü ile devam et
   const member = interaction.member;
   const nickname = member.displayName;
   
