@@ -1080,6 +1080,16 @@ async function handleRankChange(interaction) {
     return interaction.editReply({ embeds: [createErrorEmbed('Hedef kullanıcı bulunamadı!')] });
   }
 
+  const roles = await robloxAPI.getGroupRoles(config.groupId);
+  if (!roles) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Grup rütbeleri alınamadı!')] });
+  }
+  
+  const targetRole = roles.find(r => r.name.toLowerCase() === targetRankName.toLowerCase());
+  if (!targetRole) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Geçersiz rütbe adı!')] });
+  }
+
   const permissionCheck = await checkRankPermissions(interaction.user.id, targetRole.rank);
   if (!permissionCheck.allowed) {
     return interaction.editReply({ embeds: [permissionCheck.embed] });
@@ -1094,17 +1104,12 @@ async function handleRankChange(interaction) {
   if (targetUserId === permissionCheck.managerId) {
     return interaction.editReply({ embeds: [createErrorEmbed('Kendi rütbeni değiştiremezsin!')] });
   }
-  
-  const roles = await robloxAPI.getGroupRoles(config.groupId);
-  const targetRole = roles.find(r => r.name.toLowerCase() === targetRankName.toLowerCase());
-  
-  if (!targetRole) {
-    return interaction.editReply({ embeds: [createErrorEmbed('Geçersiz rütbe adı!')] });
-  }
 
   const result = await robloxAPI.setUserRole(targetUserId, config.groupId, targetRole.id, ROBLOX_COOKIE);
   
   if (result && !result.error) {
+    const currentRank = targetRank;
+    const userId = targetUserId;
     await sendRankChangeWebhook({
       type: 'change',
       targetUser: robloxNick,
