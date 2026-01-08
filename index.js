@@ -1357,7 +1357,8 @@ async function handleDemote(interaction) {
       for (const branchName in config.branchGroups) {
         const branchId = config.branchGroups[branchName];
         if (branchId && branchId !== 'GRUP_ID_BURAYA') {
-          await robloxAPI.kickUser(targetUserId, branchId, ROBLOX_COOKIE).catch(e => {
+          // kickUser fonksiyonu yerine rütbeyi 0 (misafir) yaparak gruptan çıkarıyoruz
+          await robloxAPI.setUserRole(targetUserId, branchId, 0, ROBLOX_COOKIE).catch(e => {
             console.error(`${branchName} grubundan atma hatası:`, e.message);
           });
         }
