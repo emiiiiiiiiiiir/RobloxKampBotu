@@ -1354,15 +1354,22 @@ async function handleDemote(interaction) {
   }
   
   if (result && !result.error) {
+    const removedBranches = [];
     // Branş gruplarından atma işlemi
     if (config.branchGroups) {
       for (const branchName in config.branchGroups) {
         const branchId = config.branchGroups[branchName];
         if (branchId && branchId !== 'GRUP_ID_BURAYA') {
-          // kickUser fonksiyonu yerine rütbeyi 0 (misafir) yaparak gruptan çıkarıyoruz
-          await robloxAPI.setUserRole(targetUserId, branchId, 0, ROBLOX_COOKIE).catch(e => {
+          // rütbeyi 0 (misafir) yaparak gruptan çıkarıyoruz
+          try {
+            const currentBranchRank = await robloxAPI.getUserRankInGroup(targetUserId, branchId);
+            if (currentBranchRank && currentBranchRank.rank > 0) {
+              await robloxAPI.setUserRole(targetUserId, branchId, 0, ROBLOX_COOKIE);
+              removedBranches.push(branchName);
+            }
+          } catch (e) {
             console.error(`${branchName} grubundan atma hatası:`, e.message);
-          });
+          }
         }
       }
     }
@@ -1379,11 +1386,12 @@ async function handleDemote(interaction) {
 
     const embed = new EmbedBuilder()
       .setTitle('İşlem Başarılı')
-      .setDescription(`**${targetNick}** kullanıcısı branş gruplarından atıldı ve ana grupta rütbesi en alta çekildi.`)
+      .setDescription(`**${targetNick}** kullanıcısı ana grupta **${minRole.name}** rütbesine çekildi.`)
       .addFields(
         { name: 'Hedef Kullanıcı', value: targetNick, inline: true },
         { name: 'Eski Rütbe', value: targetRank ? targetRank.name : 'Bilinmiyor', inline: true },
         { name: 'Yeni Rütbe', value: minRole.name, inline: true },
+        { name: 'Atılan Branşlar', value: removedBranches.length > 0 ? removedBranches.join(', ') : 'Hiçbir branşta bulunamadı.', inline: false },
         { name: 'Sebep', value: reason, inline: false }
       )
       .setThumbnail(`https://www.roblox.com/headshot-thumbnail/image?userId=${targetUserId}&width=420&height=420&format=png`)
