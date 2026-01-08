@@ -545,7 +545,66 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName('ticket-setup')
-    .setDescription('Destek sistemi mesajını gönderir')
+    .setDescription('Destek sistemi mesajını gönderir'),
+
+  new SlashCommandBuilder()
+    .setName('branş-istek')
+    .setDescription('Branş başvurusunu sonuçlandırır')
+    .addStringOption(option =>
+      option.setName('kişi')
+        .setDescription('Kullanıcı adı')
+        .setRequired(true)
+    )
+    .addStringOption(option =>
+      option.setName('branş')
+        .setDescription('Branş adı')
+        .setRequired(true)
+        .addChoices(
+          ...Object.keys(config.branchGroups || {}).map(name => ({ name, value: name }))
+        )
+    )
+    .addStringOption(option =>
+      option.setName('karar')
+        .setDescription('Kabul veya Red')
+        .setRequired(true)
+        .addChoices(
+          { name: 'Kabul', value: 'kabul' },
+          { name: 'Red', value: 'red' }
+        )
+    )
+    .addStringOption(option =>
+      option.setName('sebep')
+        .setDescription('Sonuç sebebi')
+        .setRequired(true)
+    ),
+
+  new SlashCommandBuilder()
+    .setName('branş-rütbe-değiştir')
+    .setDescription('Branş grubunda rütbe değiştirir')
+    .addStringOption(option =>
+      option.setName('kişi')
+        .setDescription('Kullanıcı adı')
+        .setRequired(true)
+    )
+    .addStringOption(option =>
+      option.setName('branş')
+        .setDescription('Branş adı')
+        .setRequired(true)
+        .addChoices(
+          ...Object.keys(config.branchGroups || {}).map(name => ({ name, value: name }))
+        )
+    )
+    .addStringOption(option =>
+      option.setName('rütbe')
+        .setDescription('Yeni rütbe')
+        .setRequired(true)
+        .setAutocomplete(true)
+    )
+    .addStringOption(option =>
+      option.setName('sebep')
+        .setDescription('Değişim sebebi')
+        .setRequired(true)
+    ),
 ].map(command => command.toJSON());
 
 console.log('=== Discord Bot Başlatılıyor ===\n');
