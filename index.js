@@ -1340,16 +1340,18 @@ async function handleDemote(interaction) {
   const permissionCheck = await checkRankPermissions(interaction.user.id);
   if (!permissionCheck.allowed) return interaction.editReply({ embeds: [permissionCheck.embed] });
 
+  // Kullanıcının mevcut rütbesini al
   const targetRank = await robloxAPI.getUserRankInGroup(targetUserId, config.groupId);
-  if (targetRank && targetRank.rank >= permissionCheck.managerRank.rank && permissionCheck.managerRank.rank !== 255) {
-    return interaction.editReply({ embeds: [createErrorEmbed('Sizden üst veya sizinle aynı rütbede olan birine işlem yapamazsınız!')] });
-  }
-
+  
   // Ana grupta rütbe 1'e çek
   const roles = await robloxAPI.getGroupRoles(config.groupId);
   const minRole = roles.sort((a,b) => a.rank - b.rank)[1]; // 0 misafir, 1 üye
   
-  const result = await robloxAPI.setUserRole(targetUserId, config.groupId, minRole.id, ROBLOX_COOKIE);
+  let result = { success: true };
+  // Eğer zaten hedef rütbede değilse güncelle
+  if (targetRank && targetRank.id !== minRole.id) {
+    result = await robloxAPI.setUserRole(targetUserId, config.groupId, minRole.id, ROBLOX_COOKIE);
+  }
   
   if (result && !result.error) {
     // Branş gruplarından atma işlemi
