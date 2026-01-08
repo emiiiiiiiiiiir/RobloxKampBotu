@@ -1591,9 +1591,7 @@ async function handleTicketMenuButton(interaction) {
     .setPlaceholder('Bir kategori seçin')
     .addOptions([
       { label: 'Genel Destek', value: 'genel' },
-      { label: 'Şikayet', value: 'sikayet' },
-      { label: 'Branş Başvurusu', value: 'brans' },
-      { label: 'Geri Dönüş&Transfer', value: 'transfer' }
+      { label: 'Şikayet', value: 'sikayet' }
     ]);
 
   await interaction.reply({ content: 'Lütfen talep kategorisini seçin:', components: [new ActionRowBuilder().addComponents(menu)], flags: 64 });
