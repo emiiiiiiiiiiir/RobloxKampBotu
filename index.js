@@ -468,118 +468,8 @@ const commands = [
     .setDescription('Grup oyununun aktifliğini sorgular'),
   
   new SlashCommandBuilder()
-    .setName('roblox-bağla')
-    .setDescription('Discord hesabınızı Roblox hesabınıza bağlar')
-    .addStringOption(option =>
-      option.setName('kişi')
-        .setDescription('Roblox kullanıcı adınız')
-        .setRequired(true)
-    ),
-  
-  new SlashCommandBuilder()
-    .setName('roblox-değiştir')
-    .setDescription('Bağlı Roblox hesabınızı değiştirir')
-    .addStringOption(option =>
-      option.setName('kişi')
-        .setDescription('Yeni Roblox kullanıcı adınız')
-        .setRequired(true)
-    ),
-  
-  new SlashCommandBuilder()
-    .setName('grup-listele')
-    .setDescription('Kullanıcının bulunduğu tüm grupları ve rütbelerini listeler')
-    .addStringOption(option =>
-      option.setName('kişi')
-        .setDescription('Roblox kullanıcı adı')
-        .setRequired(true)
-    ),
-  
-  new SlashCommandBuilder()
-    .setName('branş-istek')
-    .setDescription('Branş grup isteğini kabul veya reddeder')
-    .addStringOption(option =>
-      option.setName('kişi')
-        .setDescription('Roblox kullanıcı adı')
-        .setRequired(true)
-    )
-    .addStringOption(option =>
-      option.setName('branş')
-        .setDescription('Branş grubu')
-        .setRequired(true)
-        .addChoices(
-          { name: 'DKK', value: 'DKK' },
-          { name: 'KKK', value: 'KKK' },
-          { name: 'ÖKK', value: 'ÖKK' },
-          { name: 'JGK', value: 'JGK' },
-          { name: 'AS.İZ', value: 'AS.İZ' },
-          { name: 'HKK', value: 'HKK' }
-        )
-    )
-    .addStringOption(option =>
-      option.setName('karar')
-        .setDescription('Kabul veya Red')
-        .setRequired(true)
-        .addChoices(
-          { name: 'Kabul', value: 'kabul' },
-          { name: 'Red', value: 'red' }
-        )
-    )
-    .addStringOption(option =>
-      option.setName('sebep')
-        .setDescription('Kabul/Red sebebi')
-        .setRequired(true)
-    ),
-  
-  new SlashCommandBuilder()
-    .setName('branş-rütbe-değiştir')
-    .setDescription('Branş grubunda kullanıcının rütbesini değiştirir')
-    .addStringOption(option =>
-      option.setName('kişi')
-        .setDescription('Rütbe verilecek kişinin Roblox kullanıcı adı')
-        .setRequired(true)
-    )
-    .addStringOption(option =>
-      option.setName('branş')
-        .setDescription('Branş grubu')
-        .setRequired(true)
-        .addChoices(
-          { name: 'DKK', value: 'DKK' },
-          { name: 'KKK', value: 'KKK' },
-          { name: 'ÖKK', value: 'ÖKK' },
-          { name: 'JGK', value: 'JGK' },
-          { name: 'AS.İZ', value: 'AS.İZ' },
-          { name: 'HKK', value: 'HKK' }
-        )
-    )
-    .addStringOption(option =>
-      option.setName('rütbe')
-        .setDescription('Verilecek rütbe adı')
-        .setRequired(true)
-        .setAutocomplete(true)
-    )
-    .addStringOption(option =>
-      option.setName('sebep')
-        .setDescription('Rütbe değişikliği sebebi')
-        .setRequired(true)
-    ),
-  
-  new SlashCommandBuilder()
-    .setName('demote')
-    .setDescription('Kullanıcının rütbesini 1 yapar ve tüm branş gruplarından atar')
-    .addStringOption(option =>
-      option.setName('kişi')
-        .setDescription('İşlem yapılacak kişinin Roblox kullanıcı adı')
-        .setRequired(true)
-    )
-    .addStringOption(option =>
-      option.setName('sebep')
-        .setDescription('İşlem sebebi')
-        .setRequired(true)
-    ),
-
-  new SlashCommandBuilder()
     .setName('yenile')
-    .setDescription('RoWifi ve bot bilgilerini günceller/kaydeder'),
+    .setDescription('RoWifi bilgilerini günceller/kaydeder'),
   new SlashCommandBuilder()
     .setName('branş-aktiflik-sorgu')
     .setDescription('Oyundaki tüm takımların aktiflik sayılarını gösterir'),
@@ -717,12 +607,6 @@ client.on('interactionCreate', async (interaction) => {
           break;
         case 'aktiflik-sorgu':
           await handleActivityQuery(interaction);
-          break;
-        case 'roblox-bağla':
-          await handleRobloxLink(interaction);
-          break;
-        case 'roblox-değiştir':
-          await handleRobloxChange(interaction);
           break;
         case 'yenile':
           await handleYenile(interaction);
@@ -1034,100 +918,42 @@ async function checkAccountSync(interaction) {
   return { username: botUsername };
 }
 
-async function handleRobloxChange(interaction) {
-  if (!interaction.guild.name.includes('AEK')) {
-    return interaction.reply({ content: 'HATA: Bu komut sadece |AEK| Turkish Armed Forces\'a bağlı sunucularda kullanılabilir.', flags: 64 });
-  }
-  
-  const newRobloxNick = interaction.options.getString('kişi');
+async function checkAccountSync(interaction) {
   const discordUserId = interaction.user.id;
   const guildId = interaction.guildId;
   const rowifiToken = process.env.ROWIFI_API_TOKEN;
 
-  // 1. RoWifi kontrolü
-  if (rowifiToken && rowifiToken !== 'ROWIFI_API_TOKEN_BURAYA') {
-    try {
-      const response = await axios.get(`https://api.rowifi.xyz/v2/guilds/${guildId}/members/${discordUserId}`, {
-        headers: { 'Authorization': `Bearer ${rowifiToken}` },
-        timeout: 5000
-      });
+  // 1. Önce hafızadaki kayda bak
+  const botUsername = getLinkedRobloxUsername(discordUserId);
+  if (botUsername) {
+    return { username: botUsername };
+  }
 
-      if (response.data && response.data.roblox_id) {
-        const robloxInfo = await robloxAPI.getUserInfo(response.data.roblox_id);
-        
-        if (robloxInfo && robloxInfo.name.toLowerCase() === newRobloxNick.toLowerCase()) {
-          // RoWifi ile aynı hesabı bağlamaya çalışıyorsa kod sormadan bağla
-          const links = loadAccountLinks();
-          links[discordUserId] = newRobloxNick;
-          saveAccountLinks(links);
-          return interaction.reply({ 
-            embeds: [new EmbedBuilder()
-              .setTitle('İşlem Başarılı')
-              .setDescription(`**${newRobloxNick}** hesabınız RoWifi üzerinden otomatik olarak tanındı ve bot sistemine başarıyla kaydedildi.`)
-              .setThumbnail(`https://www.roblox.com/headshot-thumbnail/image?userId=${response.data.roblox_id}&width=420&height=420&format=png`)
-              .setColor(0x2B2D31)
-              .setFooter({ text: 'RoWifi Entegrasyonu Aktif', iconURL: interaction.user.displayAvatarURL() })
-              .setTimestamp()],
-            flags: 64 
-          });
-        }
-      } else {
-        // RoWifi kaydı yoksa uyar ve işlemi durdur
-        return interaction.reply({
-          embeds: [new EmbedBuilder()
-            .setTitle('RoWifi Kaydı Bulunamadı')
-            .setDescription(`**${interaction.user.username}**, RoWifi üzerinde bağlı bir Roblox hesabınız bulunamadı. Lütfen önce RoWifi üzerinden hesabınızı bağlayın.`)
-            .setColor(0x2B2D31)],
-          flags: 64
-        });
-      }
-    } catch (error) {
-      console.error('handleRobloxChange RoWifi kontrol hatası:', error.message);
-      if (error.response?.status === 403) {
-        console.warn('RoWifi API yetki hatası (403). RoWifi kontrolü atlanıyor...');
+  // 2. RoWifi API üzerinden otomatik çekmeye çalış
+  try {
+    const response = await axios.get(`https://api.rowifi.xyz/v2/guilds/${guildId}/members/${discordUserId}`, {
+      headers: { 'Authorization': `Bearer ${rowifiToken}` },
+      timeout: 5000
+    });
+
+    if (response.data && response.data.roblox_id) {
+      const robloxInfo = await robloxAPI.getUserInfo(response.data.roblox_id);
+      if (robloxInfo) {
+        // Otomatik kaydet
+        const links = loadAccountLinks();
+        links[discordUserId] = robloxInfo.name;
+        saveAccountLinks(links);
+        return { username: robloxInfo.name, robloxId: response.data.roblox_id };
       }
     }
+  } catch (error) {
+    console.error('checkAccountSync RoWifi API hatası:', error.message);
   }
 
-  // 2. Manuel Doğrulama (Profil açıklaması)
-  const userId = await robloxAPI.getUserIdByUsername(newRobloxNick);
-  if (!userId) {
-    return interaction.reply({ embeds: [createErrorEmbed('Roblox kullanıcısı bulunamadı!')], flags: 64 });
-  }
-
-  const verifications = loadPendingVerifications();
-  const code = generateVerificationCode();
-  
-  verifications[discordUserId] = {
-    robloxId: userId,
-    username: newRobloxNick,
-    code: code,
-    timestamp: Date.now()
-  };
-  
-  savePendingVerifications(verifications);
-
-  const embed = new EmbedBuilder()
-    .setTitle('Hesap Doğrulama')
-    .setDescription(`**${newRobloxNick}** hesabını bot sistemine bağlamak için lütfen aşağıdaki kodu Roblox profil açıklamanıza (Bio) ekleyin ve **Doğrula** butonuna basın.\n\n**Doğrulama Kodu**\n\`\`\`\n${code}\n\`\`\``)
-    .setColor(0x2B2D31)
-    .setThumbnail(`https://www.roblox.com/headshot-thumbnail/image?userId=${userId}&width=420&height=420&format=png`)
-    .setFooter({ text: 'İşlem süresi: 10 dakika', iconURL: interaction.user.displayAvatarURL() })
-    .setTimestamp();
-
-  const row = new ActionRowBuilder()
-    .addComponents(
-      new ButtonBuilder()
-        .setCustomId(`verify_link_${discordUserId}`)
-        .setLabel('Doğrula')
-        .setStyle(ButtonStyle.Secondary)
-    );
-
-  await interaction.reply({ embeds: [embed], components: [row], flags: 64 });
-}
-
-async function handleRobloxLink(interaction) {
-  return handleRobloxChange(interaction);
+  await interaction.editReply({ 
+    embeds: [createErrorEmbed('RoWifi ile hesabınızı doğrulamamışsınız. Lütfen önce RoWifi ile hesabınızı bağlayın ve ardından `/yenile` komutunu kullanın.')]
+  });
+  return null;
 }
 
 async function handleYenile(interaction) {
@@ -1137,73 +963,56 @@ async function handleYenile(interaction) {
   const guildId = interaction.guildId;
   const rowifiToken = process.env.ROWIFI_API_TOKEN;
 
-  let robloxData = null;
+  try {
+    const response = await axios.get(`https://api.rowifi.xyz/v2/guilds/${guildId}/members/${discordUserId}`, {
+      headers: { 'Authorization': `Bearer ${rowifiToken}` },
+      timeout: 5000
+    });
 
-  // 1. Önce RoWifi API üzerinden otomatik çekmeye çalış
-  if (rowifiToken && rowifiToken !== 'ROWIFI_API_TOKEN_BURAYA') {
-    try {
-      const response = await axios.get(`https://api.rowifi.xyz/v2/guilds/${guildId}/members/${discordUserId}`, {
-        headers: { 'Authorization': `Bearer ${rowifiToken}` },
-        timeout: 5000
+    if (response.data && response.data.roblox_id) {
+      const robloxInfo = await robloxAPI.getUserInfo(response.data.roblox_id);
+      if (!robloxInfo) {
+        return interaction.editReply({
+          embeds: [createErrorEmbed('Roblox kullanıcı bilgileri alınamadı.')]
+        });
+      }
+
+      const links = loadAccountLinks();
+      links[discordUserId] = robloxInfo.name;
+      saveAccountLinks(links);
+
+      const embed = new EmbedBuilder()
+        .setTitle('Hesap Yenilendi')
+        .setDescription(`RoWifi üzerinden bağlı hesabınız başarıyla algılandı ve güncellendi.`)
+        .addFields(
+          { name: 'Roblox Kullanıcı Adı', value: `\`${robloxInfo.name}\``, inline: true },
+          { name: 'Roblox ID', value: `\`${response.data.roblox_id}\``, inline: true },
+          { name: 'Discord ID', value: `\`${discordUserId}\``, inline: true }
+        )
+        .setThumbnail(`https://www.roblox.com/headshot-thumbnail/image?userId=${response.data.roblox_id}&width=420&height=420&format=png`)
+        .setColor(0x57F287)
+        .setTimestamp();
+
+      await interaction.editReply({ embeds: [embed] });
+    } else {
+      await interaction.editReply({
+        embeds: [createErrorEmbed('RoWifi üzerinde bağlı bir hesabınız bulunamadı. Lütfen önce RoWifi ile hesabınızı bağlayın.')]
       });
-
-      if (response.data && response.data.roblox_id) {
-        const robloxInfo = await robloxAPI.getUserInfo(response.data.roblox_id);
-        if (robloxInfo) {
-          robloxData = {
-            username: robloxInfo.name,
-            id: response.data.roblox_id
-          };
-          
-          // Botun kendi hafızasına da kaydet (hesap bağla derdi kalmasın diye)
-          const links = loadAccountLinks();
-          links[discordUserId] = robloxInfo.name;
-          saveAccountLinks(links);
-        }
-      }
-    } catch (error) {
-      console.error('handleYenile RoWifi API hatası:', error.message);
     }
+  } catch (error) {
+    console.error('Yenileme hatası:', error.message);
+    await interaction.editReply({
+      embeds: [createErrorEmbed('RoWifi bilgileri alınırken bir hata oluştu. Lütfen RoWifi entegrasyonunun aktif olduğundan emin olun.')]
+    });
   }
+}
 
-  // 2. Eğer RoWifi'den gelmediyse botun kendi kayıtlarına bak
-  if (!robloxData) {
-    const botUsername = getLinkedRobloxUsername(discordUserId);
-    if (botUsername) {
-      const userId = await robloxAPI.getUserIdByUsername(botUsername);
-      if (userId) {
-        robloxData = {
-          username: botUsername,
-          id: userId
-        };
-      }
-    }
-  }
+async function handleRobloxChange(interaction) {
+  return interaction.reply({ content: 'Bu komut kaldırıldı. Lütfen /yenile komutunu kullanın.', flags: 64 });
+}
 
-  // 3. Hala veri yoksa (kayıtlı değilse)
-  if (!robloxData) {
-    const embed = new EmbedBuilder()
-      .setTitle('Kayıt Bulunamadı')
-      .setDescription('Sistemde kayıtlı bir hesabınız bulunamadı. Lütfen önce RoWifi üzerinden hesabınızı bağlayın.')
-      .setColor(0xED4245)
-      .setTimestamp();
-    return interaction.editReply({ embeds: [embed] });
-  }
-
-  // 4. Görseldeki gibi modern embed oluştur
-  const embed = new EmbedBuilder()
-    .setTitle('Bilgilerin Güncellendi!')
-    .addFields(
-      { name: 'Roblox Adı', value: `\`${robloxData.username}\``, inline: false },
-      { name: 'Roblox ID', value: `\`${robloxData.id}\``, inline: false },
-      { name: 'Discord ID', value: `\`${discordUserId}\``, inline: false }
-    )
-    .setDescription('\nEğer bilgileriniz hatalıysa RoWifi hesabınızı kontrol ediniz.')
-    .setThumbnail(`https://www.roblox.com/headshot-thumbnail/image?userId=${robloxData.id}&width=420&height=420&format=png`)
-    .setColor(0x2B2D31)
-    .setTimestamp();
-    
-  await interaction.editReply({ embeds: [embed] });
+async function handleRobloxLink(interaction) {
+  return interaction.reply({ content: 'Bu komut kaldırıldı. Lütfen /yenile komutunu kullanın.', flags: 64 });
 }
 
 async function handleRankQuery(interaction) {
