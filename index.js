@@ -1576,7 +1576,8 @@ async function handleAnnouncement(interaction) {
 async function handleTicketSetup(interaction) {
   const embed = new EmbedBuilder()
     .setTitle('AEK | Destek Sistemi')
-    .setDescription('Yardıma mı ihtiyacın var? Aşağıdaki butona basarak menüyü açabilirsin.')
+    .setDescription('Yardıma mı ihtiyacın var? Aşağıdaki butona basarak menüyü açabilirsin.\n\n**Talep Türleri:**\n• Genel Destek\n• Şikayet\n• Branş Başvurusu\n• Geri Dönüş&Transfer')
+    .setThumbnail(interaction.guild.iconURL())
     .setColor(0x2B2D31);
   
   const row = new ActionRowBuilder().addComponents(
