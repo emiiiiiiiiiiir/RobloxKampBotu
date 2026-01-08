@@ -1530,7 +1530,6 @@ async function handleDemote(interaction) {
       )
       .setThumbnail(`https://www.roblox.com/headshot-thumbnail/image?userId=${targetUserId}&width=420&height=420&format=png`)
       .setColor(0xED4245)
-      .setFooter({ text: 'AEK Demote Sistemi', iconURL: interaction.user.displayAvatarURL() })
       .setTimestamp();
 
     await interaction.editReply({ embeds: [embed] });
