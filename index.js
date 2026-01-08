@@ -1389,6 +1389,33 @@ async function handleBranchRequest(interaction) {
   const permCheck = await checkBranchRankPermissions(interaction.user.id, branch);
   if (!permCheck.allowed) return interaction.editReply({ embeds: [permCheck.embed] });
 
+  const branchGroupId = config.branchGroups[branch];
+  
+  if (decision === 'kabul') {
+    // Önce kullanıcının ID'sini al
+    const targetUserId = await robloxAPI.getUserIdByUsername(targetNick);
+    if (!targetUserId) {
+      return interaction.editReply({ embeds: [createErrorEmbed('Kullanıcı bulunamadı!')] });
+    }
+
+    // Katılma isteği olup olmadığını kontrol et
+    const joinRequests = await robloxAPI.getJoinRequests(branchGroupId, ROBLOX_COOKIE);
+    if (!joinRequests) {
+      return interaction.editReply({ embeds: [createErrorEmbed('Katılma istekleri kontrol edilemedi! Çerez geçersiz olabilir.')] });
+    }
+
+    const request = joinRequests.find(r => r.requester.userId === targetUserId);
+    if (!request) {
+      return interaction.editReply({ embeds: [createErrorEmbed(`**${targetNick}** kullanıcısının **${branch}** grubunda bekleyen bir katılma isteği bulunamadı!`)] });
+    }
+
+    // İsteği kabul et
+    const acceptSuccess = await robloxAPI.acceptJoinRequest(branchGroupId, targetUserId, ROBLOX_COOKIE);
+    if (!acceptSuccess) {
+      return interaction.editReply({ embeds: [createErrorEmbed('İstek kabul edilirken bir hata oluştu!')] });
+    }
+  }
+
   await sendBranchRequestWebhook({
     targetUser: targetNick,
     manager: permCheck.managerUsername,
