@@ -1574,9 +1574,9 @@ async function handleAnnouncement(interaction) {
 
 async function handleTicketSetup(interaction) {
   const embed = new EmbedBuilder()
-    .setTitle('AEK | Destek Sistemi')
-    .setDescription('Yardıma mı ihtiyacın var? Aşağıdaki butona basarak menüyü açabilirsin.\n\n**Talep Türleri:**\n• Genel Destek\n• Şikayet\n• Branş Başvurusu\n• Geri Dönüş&Transfer')
-    .setThumbnail(interaction.guild.iconURL())
+    .setTitle('Turkish Armed Forces')
+    .setDescription('**Moderatör Bileti**\nDiscord ile ilgili yaşanan sorunlar ve yardım talepleri için bu bileti seç.\n\n**Gamepass Bileti**\nRobux ile rütbe, branş üyeliği alımında bu bilet türünü seç.\n\n**Oyun Destek Bileti**\nOyunumuzda yaşanan sorunlar hakkında yardım almak için bu bileti seç.\n\n**Rütbe Destek Bileti**\nRütbeniz hakkında yaşanan sorunlar hakkında yardım almak için bu bileti seç.(Rütbem Gitti)\n\n**Reklam Destek Bileti**\nDiscord veya Oyun üzerinde reklam yapan insanları şikayet edebilmek için bu bilet türünü seç.\n\n**Geri Dönüş&Transfer Bileti**\nGeri dönüş veya transfer işlemleri hakkında destek almak için bu bileti seç.')
+    .setImage('https://media.discordapp.net/attachments/1119330101861781534/1119330102146990141/AEK_Logo.png') // Resim URL'sini görseldeki gibi bir AEK görseliyle güncelledim
     .setColor(0x2B2D31);
   
   const row = new ActionRowBuilder().addComponents(
@@ -1589,12 +1589,14 @@ async function handleTicketSetup(interaction) {
 async function handleTicketMenuButton(interaction) {
   const menu = new StringSelectMenuBuilder()
     .setCustomId('ticket_category')
-    .setPlaceholder('Bir kategori seçin')
+    .setPlaceholder('Bir bilet türü seçin')
     .addOptions([
-      { label: 'Genel Destek', value: 'genel' },
-      { label: 'Şikayet', value: 'sikayet' },
-      { label: 'Branş Başvurusu', value: 'brans' },
-      { label: 'Geri Dönüş&Transfer', value: 'transfer' }
+      { label: 'Moderatör Bileti', value: 'mod' },
+      { label: 'Gamepass Bileti', value: 'gamepass' },
+      { label: 'Oyun Destek Bileti', value: 'oyun' },
+      { label: 'Rütbe Destek Bileti', value: 'rutbe' },
+      { label: 'Reklam Destek Bileti', value: 'reklam' },
+      { label: 'Geri Dönüş&Transfer Bileti', value: 'transfer' }
     ]);
 
   await interaction.reply({ content: 'Lütfen talep kategorisini seçin:', components: [new ActionRowBuilder().addComponents(menu)], flags: 64 });
