@@ -1601,8 +1601,57 @@ async function handleTicketMenuButton(interaction) {
 
 async function handleTicketCategorySelect(interaction) {
   const category = interaction.values[0];
-  await interaction.reply({ content: `**${category}** kategorisinde ticket açılıyor...`, flags: 64 });
-  // Kanal oluşturma vb. mantık buraya gelir
+  const userId = interaction.user.id;
+  const guild = interaction.guild;
+
+  // Kategori isimlerini Türkçeleştirelim
+  const categoryNames = {
+    'genel': 'Genel Destek',
+    'sikayet': 'Şikayet',
+    'gamepass': 'Gamepass Sorunu',
+    'bug': 'Bug Bildirimi'
+  };
+
+  const categoryName = categoryNames[category] || category;
+
+  try {
+    const channel = await guild.channels.create({
+      name: `ticket-${category}-${interaction.user.username}`,
+      type: ChannelType.GuildText,
+      permissionOverwrites: [
+        {
+          id: guild.id,
+          deny: [PermissionFlagsBits.ViewChannel],
+        },
+        {
+          id: userId,
+          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.AttachFiles],
+        },
+        // Destek ekibi rollerini buraya ekleyebilirsiniz
+      ],
+    });
+
+    const embed = new EmbedBuilder()
+      .setTitle('AEK | Destek Talebi')
+      .setDescription(`Merhaba <@${userId}>, destek talebiniz oluşturuldu.\nLütfen sorununuzu detaylıca açıklayın. En kısa sürede size yardımcı olacağız.`)
+      .addFields(
+        { name: 'Kategori', value: categoryName, inline: true },
+        { name: 'Kullanıcı', value: `<@${userId}>`, inline: true }
+      )
+      .setColor(0x2B2D31)
+      .setTimestamp();
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('close_ticket').setLabel('Talebi Kapat').setStyle(ButtonStyle.Danger),
+      new ButtonBuilder().setCustomId('claim_ticket').setLabel('Talebi Üstlen').setStyle(ButtonStyle.Success)
+    );
+
+    await channel.send({ embeds: [embed], components: [row] });
+    await interaction.reply({ content: `Destek talebiniz oluşturuldu: <#${channel.id}>`, flags: 64 });
+  } catch (error) {
+    console.error('Ticket kanal oluşturma hatası:', error);
+    await interaction.reply({ content: 'Ticket oluşturulurken bir hata oluştu!', flags: 64 });
+  }
 }
 
 async function handleTicketClose(interaction) {
