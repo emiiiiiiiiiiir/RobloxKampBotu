@@ -1134,25 +1134,73 @@ async function handleYenile(interaction) {
   await interaction.deferReply({ flags: 64 });
   
   const discordUserId = interaction.user.id;
-  const botUsername = getLinkedRobloxUsername(discordUserId);
-  const nickname = interaction.member.displayName;
-  const potentialUsername = nickname.split(' ')[0].replace(/[()]/g, '');
-  
-  // Eğer botta kayıtlı bir kullanıcı varsa ve nickname ile uyuşuyorsa sadece başarı mesajı ver
-  if (botUsername && nickname.toLowerCase().includes(botUsername.toLowerCase())) {
+  const guildId = interaction.guildId;
+  const rowifiToken = process.env.ROWIFI_API_TOKEN;
+
+  let robloxData = null;
+
+  // 1. Önce RoWifi API üzerinden otomatik çekmeye çalış
+  if (rowifiToken && rowifiToken !== 'ROWIFI_API_TOKEN_BURAYA') {
+    try {
+      const response = await axios.get(`https://api.rowifi.xyz/v2/guilds/${guildId}/members/${discordUserId}`, {
+        headers: { 'Authorization': `Bearer ${rowifiToken}` },
+        timeout: 5000
+      });
+
+      if (response.data && response.data.roblox_id) {
+        const robloxInfo = await robloxAPI.getUserInfo(response.data.roblox_id);
+        if (robloxInfo) {
+          robloxData = {
+            username: robloxInfo.name,
+            id: response.data.roblox_id
+          };
+          
+          // Botun kendi hafızasına da kaydet (hesap bağla derdi kalmasın diye)
+          const links = loadAccountLinks();
+          links[discordUserId] = robloxInfo.name;
+          saveAccountLinks(links);
+        }
+      }
+    } catch (error) {
+      console.error('handleYenile RoWifi API hatası:', error.message);
+    }
+  }
+
+  // 2. Eğer RoWifi'den gelmediyse botun kendi kayıtlarına bak
+  if (!robloxData) {
+    const botUsername = getLinkedRobloxUsername(discordUserId);
+    if (botUsername) {
+      const userId = await robloxAPI.getUserIdByUsername(botUsername);
+      if (userId) {
+        robloxData = {
+          username: botUsername,
+          id: userId
+        };
+      }
+    }
+  }
+
+  // 3. Hala veri yoksa (kayıtlı değilse)
+  if (!robloxData) {
     const embed = new EmbedBuilder()
-      .setTitle('Bilgiler Güncel')
-      .setDescription(`Hesabınız zaten **${botUsername}** olarak sistemimize kayıtlı ve Discord adınızla uyumlu. Herhangi bir işlem yapmanıza gerek yoktur.`)
-      .setColor(0x57F287)
+      .setTitle('Kayıt Bulunamadı')
+      .setDescription('Sistemde kayıtlı bir hesabınız bulunamadı. Lütfen önce RoWifi üzerinden hesabınızı bağlayın.')
+      .setColor(0xED4245)
       .setTimestamp();
     return interaction.editReply({ embeds: [embed] });
   }
 
-  // Eğer botta kayıtlı kullanıcı yoksa veya uyuşmuyorsa yönlendir
+  // 4. Görseldeki gibi modern embed oluştur
   const embed = new EmbedBuilder()
-    .setTitle('Bilgiler Kontrol Edildi')
-    .setDescription(`Discord adınızdaki (**${potentialUsername}**) ismi tespit edildi.\n\nEğer bu isim doğruysa ve bot sistemine kaydetmek istiyorsanız lütfen \`/roblox-bağla ${potentialUsername}\` komutunu kullanarak işlemi tamamlayın.\n\nEğer zaten bağlıysanız ancak isminiz uyuşmuyorsa, lütfen Discord adınızın Roblox adınızla aynı olduğundan emin olun.`)
-    .setColor(0x5865F2)
+    .setTitle('Bilgilerin Güncellendi!')
+    .addFields(
+      { name: 'Roblox Adı', value: `\`${robloxData.username}\``, inline: false },
+      { name: 'Roblox ID', value: `\`${robloxData.id}\``, inline: false },
+      { name: 'Discord ID', value: `\`${discordUserId}\``, inline: false }
+    )
+    .setDescription('\nEğer bilgileriniz hatalıysa RoWifi hesabınızı kontrol ediniz.')
+    .setThumbnail(`https://www.roblox.com/headshot-thumbnail/image?userId=${robloxData.id}&width=420&height=420&format=png`)
+    .setColor(0x2B2D31)
     .setTimestamp();
     
   await interaction.editReply({ embeds: [embed] });
