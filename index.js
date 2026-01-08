@@ -815,7 +815,7 @@ async function checkRankPermissions(discordUserId, targetRank) {
   if (!managerUsername) {
     return { 
       allowed: false, 
-      embed: createErrorEmbed('RoWifi ile hesabını doğrulamamışsın veya bilgilerin güncel değil. `/yenile` komutunu kullanarak bilgilerini güncelle veya kaydet.')
+      embed: createErrorEmbed('RoWifi ile hesabınızı doğrulamamışsınız veya bilgileriniz güncel değil. `/yenile` komutunu kullanarak bilgilerinizi güncelleyin.')
     };
   }
 
@@ -835,20 +835,19 @@ async function checkRankPermissions(discordUserId, targetRank) {
     };
   }
 
-  // İzinli rütbe seviyelerini kontrol et
-  if (config.allowedRanks && !config.allowedRanks.includes(managerRank.rank)) {
+  // Yetkili rütbe seviyeleri
+  const allowedRankValues = [35, 36, 37, 38, 39, 255];
+  if (!allowedRankValues.includes(managerRank.rank)) {
     return { 
       allowed: false, 
-      embed: createErrorEmbed(`Bu işlemi yapmak için yetkiniz yetersiz! (Gerekli rütbeler: ${config.allowedRanks.join(', ')})`)
+      embed: createErrorEmbed(`Bu işlemi yapmak için yetkiniz yetersiz! (Rütbeniz: ${managerRank.name})`)
     };
   }
 
-  const maxAllowedRank = Math.min(managerRank.rank, config.maxRankCanAssign);
-  
-  if (targetRank !== undefined && targetRank > maxAllowedRank) {
+  if (targetRank !== undefined && targetRank >= managerRank.rank && managerRank.rank !== 255) {
     return { 
       allowed: false, 
-      embed: createErrorEmbed(`En fazla ${maxAllowedRank} seviye rütbe verebilirsiniz! (Hedef rütbe: ${targetRank})`)
+      embed: createErrorEmbed(`Sizden üst veya sizinle aynı rütbede olan birine rütbe veremezsiniz!`)
     };
   }
 
@@ -856,8 +855,7 @@ async function checkRankPermissions(discordUserId, targetRank) {
     allowed: true, 
     managerRank: managerRank,
     managerUsername: managerUsername,
-    managerId: managerId,
-    maxAllowedRank: maxAllowedRank 
+    managerId: managerId
   };
 }
 
@@ -869,67 +867,11 @@ async function checkAccountSync(interaction) {
   // Botun kendi veritabanındaki (account_links.json) kullanıcı adını al
   const botUsername = getLinkedRobloxUsername(discordUserId);
 
-  if (!botUsername) {
-    await interaction.editReply({ 
-      embeds: [createErrorEmbed('RoWifi ile hesabını doğrulamamışsın veya bilgilerin güncel değil. `/yenile` komutunu kullanarak bilgilerini güncelle veya kaydet.')]
-    });
-    return null;
-  }
-
-  // Resmi RoWifi API üzerinden kontrol
-  if (rowifiToken && rowifiToken !== 'ROWIFI_API_TOKEN_BURAYA') {
-    try {
-      const response = await axios.get(`https://api.rowifi.xyz/v2/guilds/${guildId}/members/${discordUserId}`, {
-        headers: { 'Authorization': `Bearer ${rowifiToken}` },
-        timeout: 5000
-      });
-
-      if (response.data && response.data.roblox_id) {
-        // RoWifi'den gelen Roblox ID'sini kullanarak kullanıcı adını doğrula
-        const robloxInfo = await robloxAPI.getUserInfo(response.data.roblox_id);
-        
-        if (robloxInfo && robloxInfo.name.toLowerCase() === botUsername.toLowerCase()) {
-          return { username: botUsername, robloxId: response.data.roblox_id };
-        } else {
-          console.warn(`[Sync Warning] RoWifi mismatch: ${robloxInfo?.name} vs ${botUsername}`);
-          await interaction.editReply({ 
-            embeds: [createErrorEmbed('RoWifi ile hesabını doğrulamamışsın veya bilgilerin güncel değil. `/yenile` komutunu kullanarak bilgilerini güncelle veya kaydet.')]
-          });
-          return null;
-        }
-      }
-    } catch (error) {
-      console.error('RoWifi API hatası:', error.response?.data || error.message);
-      // API hatası durumunda nickname kontrolüne geri dön (yedek plan)
-    }
-  }
-
-  // API Token yoksa veya hata verdiyse Nickname kontrolü ile devam et
-  const member = interaction.member;
-  const nickname = member.displayName;
-  
-  if (!nickname.toLowerCase().includes(botUsername.toLowerCase())) {
-    await interaction.editReply({ 
-      embeds: [createErrorEmbed('RoWifi ile hesabını doğrulamamışsın veya bilgilerin güncel değil. `/yenile` komutunu kullanarak bilgilerini güncelle veya kaydet.')]
-    });
-    return null;
-  }
-  
-  return { username: botUsername };
-}
-
-async function checkAccountSync(interaction) {
-  const discordUserId = interaction.user.id;
-  const guildId = interaction.guildId;
-  const rowifiToken = process.env.ROWIFI_API_TOKEN;
-
-  // 1. Önce hafızadaki kayda bak
-  const botUsername = getLinkedRobloxUsername(discordUserId);
   if (botUsername) {
     return { username: botUsername };
   }
 
-  // 2. RoWifi API üzerinden otomatik çekmeye çalış
+  // Resmi RoWifi API üzerinden kontrol
   if (rowifiToken && rowifiToken !== 'ROWIFI_API_TOKEN_BURAYA') {
     try {
       const response = await axios.get(`https://api.rowifi.xyz/v3/guilds/${guildId}/members/${discordUserId}`, {
@@ -953,7 +895,7 @@ async function checkAccountSync(interaction) {
   }
 
   await interaction.editReply({ 
-    embeds: [createErrorEmbed('RoWifi ile hesabınızı doğrulamamışsınız. Lütfen önce RoWifi ile hesabınızı bağlayın ve ardından `/yenile` komutunu kullanın.')]
+    embeds: [createErrorEmbed('RoWifi ile hesabınızı doğrulamamışsınız veya bilgileriniz güncel değil. `/yenile` komutunu kullanarak bilgilerinizi güncelleyin.')]
   });
   return null;
 }
@@ -1097,7 +1039,7 @@ async function handleRankChange(interaction) {
 
   // Hedef kişinin rütbesini kontrol et
   const targetRank = await robloxAPI.getUserRankInGroup(targetUserId, config.groupId);
-  if (targetRank && targetRank.rank >= permissionCheck.managerRank.rank) {
+  if (targetRank && targetRank.rank >= permissionCheck.managerRank.rank && permissionCheck.managerRank.rank !== 255) {
     return interaction.editReply({ embeds: [createErrorEmbed('Sizden üst veya sizinle aynı rütbede olan birine işlem yapamazsınız!')] });
   }
   
@@ -1116,7 +1058,8 @@ async function handleRankChange(interaction) {
       manager: permissionCheck.managerUsername,
       managerRank: permissionCheck.managerRank.name,
       oldRank: currentRank ? `${currentRank.name} (${currentRank.rank})` : 'Bilinmiyor',
-      newRank: `${targetRole.name} (${targetRole.rank})`
+      newRank: `${targetRole.name} (${targetRole.rank})`,
+      reason: reason
     });
     
     const oldRankText = currentRank ? currentRank.name : 'Bilinmiyor';
@@ -1126,7 +1069,7 @@ async function handleRankChange(interaction) {
     
     await interaction.editReply({ embeds: [embed] });
   } else {
-    const errorMsg = translateRobloxError(result?.error?.errors?.[0]?.message);
+    const errorMsg = translateRobloxError(result?.error?.errors?.[0]?.message || result?.error);
     await interaction.editReply({ embeds: [createErrorEmbed(`Rütbe değiştirilemedi! ${errorMsg}`)] });
   }
 }
@@ -1186,7 +1129,8 @@ async function handleRankPromotion(interaction) {
       manager: permissionCheck.managerUsername,
       managerRank: permissionCheck.managerRank.name,
       oldRank: `${currentRank.name} (${currentRank.rank})`,
-      newRank: `${nextRole.name} (${nextRole.rank})`
+      newRank: `${nextRole.name} (${nextRole.rank})`,
+      reason: reason
     });
     
     const embed = new EmbedBuilder()
@@ -1195,7 +1139,7 @@ async function handleRankPromotion(interaction) {
     
     await interaction.editReply({ embeds: [embed] });
   } else {
-    const errorMsg = translateRobloxError(result?.error?.errors?.[0]?.message);
+    const errorMsg = translateRobloxError(result?.error?.errors?.[0]?.message || result?.error);
     await interaction.editReply({ embeds: [createErrorEmbed(`Terfi işlemi başarısız! ${errorMsg}`)] });
   }
 }
