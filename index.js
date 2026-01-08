@@ -531,7 +531,7 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName('demote')
-    .setDescription('Kullanıcının rütbesini 1 yapar ve tüm branş gruplarından atar')
+    .setDescription('Kullanıcının rütbesini en alt rütbeye çeker ve tüm branş gruplarından atar')
     .addStringOption(option =>
       option.setName('kişi')
         .setDescription('İşlem yapılacak kişinin Roblox kullanıcı adı')
@@ -539,7 +539,7 @@ const commands = [
     )
     .addStringOption(option =>
       option.setName('sebep')
-        .setDescription('İşlem sebebi')
+        .setDescription('Demote edilme sebebi')
         .setRequired(true)
     ),
 
@@ -1323,27 +1323,64 @@ async function handleGroupList(interaction) {
 }
 
 async function handleDemote(interaction) {
+  if (!interaction.guild.name.includes('AEK')) {
+    return interaction.reply({ content: 'HATA: Bu komut sadece |AEK| Turkish Armed Forces\'a bağlı sunucularda kullanılabilir.', ephemeral: true });
+  }
+
   await interaction.deferReply();
+  
+  if (!(await checkAccountSync(interaction))) return;
+
   const targetNick = interaction.options.getString('kişi');
   const reason = interaction.options.getString('sebep');
   
   const targetUserId = await robloxAPI.getUserIdByUsername(targetNick);
-  if (!targetUserId) return interaction.editReply({ embeds: [createErrorEmbed('Kullanıcı bulunamadı!')] });
+  if (!targetUserId) return interaction.editReply({ embeds: [createErrorEmbed('Hedef kullanıcı bulunamadı!')] });
 
-  const permCheck = await checkRankPermissions(interaction.user.id);
-  if (!permCheck.allowed) return interaction.editReply({ embeds: [permCheck.embed] });
+  const permissionCheck = await checkRankPermissions(interaction.user.id);
+  if (!permissionCheck.allowed) return interaction.editReply({ embeds: [permissionCheck.embed] });
+
+  const targetRank = await robloxAPI.getUserRankInGroup(targetUserId, config.groupId);
+  if (targetRank && targetRank.rank >= permissionCheck.managerRank.rank && permissionCheck.managerRank.rank !== 255) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Sizden üst veya sizinle aynı rütbede olan birine işlem yapamazsınız!')] });
+  }
 
   // Ana grupta rütbe 1'e çek
   const roles = await robloxAPI.getGroupRoles(config.groupId);
   const minRole = roles.sort((a,b) => a.rank - b.rank)[1]; // 0 misafir, 1 üye
   
-  await robloxAPI.setUserRole(targetUserId, config.groupId, minRole.id, ROBLOX_COOKIE);
+  const result = await robloxAPI.setUserRole(targetUserId, config.groupId, minRole.id, ROBLOX_COOKIE);
   
-  const embed = new EmbedBuilder()
-    .setTitle('Demote İşlemi')
-    .setDescription(`**${targetNick}** ana grupta rütbesi düşürüldü.\n\n**Sebep:** ${reason}`)
-    .setColor(0xED4245);
-  await interaction.editReply({ embeds: [embed] });
+  if (result && !result.error) {
+    await sendRankChangeWebhook({
+      type: 'demotion',
+      targetUser: targetNick,
+      manager: permissionCheck.managerUsername,
+      managerRank: permissionCheck.managerRank.name,
+      oldRank: targetRank ? `${targetRank.name} (${targetRank.rank})` : 'Bilinmiyor',
+      newRank: `${minRole.name} (${minRole.rank})`,
+      reason: reason
+    });
+
+    const embed = new EmbedBuilder()
+      .setTitle('İşlem Başarılı')
+      .setDescription(`**${targetNick}** kullanıcısı başarıyla demote edildi.`)
+      .addFields(
+        { name: 'Hedef Kullanıcı', value: targetNick, inline: true },
+        { name: 'Eski Rütbe', value: targetRank ? targetRank.name : 'Bilinmiyor', inline: true },
+        { name: 'Yeni Rütbe', value: minRole.name, inline: true },
+        { name: 'Sebep', value: reason, inline: false }
+      )
+      .setThumbnail(`https://www.roblox.com/headshot-thumbnail/image?userId=${targetUserId}&width=420&height=420&format=png`)
+      .setColor(0xED4245)
+      .setFooter({ text: 'AEK Demote Sistemi', iconURL: interaction.user.displayAvatarURL() })
+      .setTimestamp();
+
+    await interaction.editReply({ embeds: [embed] });
+  } else {
+    const errorMsg = translateRobloxError(result?.error?.errors?.[0]?.message || result?.error);
+    await interaction.editReply({ embeds: [createErrorEmbed(`Demote işlemi başarısız! ${errorMsg}`)] });
+  }
 }
 
 async function handleGameBan(interaction) {
