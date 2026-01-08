@@ -1324,11 +1324,59 @@ async function handleBranchRankChange(interaction) {
 async function handleBranchKick(interaction) {
   if (!interaction.guild.name.includes('AEK')) return interaction.reply({ content: 'HATA!', flags: 64 });
   await interaction.deferReply();
+  
   const targetNick = interaction.options.getString('kişi');
   const reason = interaction.options.getString('sebep');
-  // Branştan atma işlemi genellikle rütbeyi 0 (veya en alt) yapar veya gruptan atar. 
-  // Burada gruptan atma API'si gerektiğini varsayıyoruz.
-  await interaction.editReply({ content: 'Branştan atma sistemi geliştirme aşamasındadır.' });
+  
+  const targetUserId = await robloxAPI.getUserIdByUsername(targetNick);
+  if (!targetUserId) return interaction.editReply({ embeds: [createErrorEmbed('Hedef kullanıcı bulunamadı!')] });
+
+  // Mevcut kullanıcının hangi branş gruplarında olduğunu bul
+  const removedBranches = [];
+  if (config.branchGroups) {
+    for (const branchName in config.branchGroups) {
+      const branchId = config.branchGroups[branchName];
+      if (branchId && branchId !== 'GRUP_ID_BURAYA') {
+        try {
+          const currentBranchRank = await robloxAPI.getUserRankInGroup(targetUserId, branchId);
+          if (currentBranchRank && currentBranchRank.rank > 0) {
+            // Yetki kontrolü (branş yetkilisi mi?)
+            const permCheck = await checkBranchRankPermissions(interaction.user.id, branchName);
+            if (permCheck.allowed) {
+              await robloxAPI.setUserRole(targetUserId, branchId, 0, ROBLOX_COOKIE);
+              removedBranches.push(branchName);
+              
+              await sendRankChangeWebhook({
+                type: 'branch_kick',
+                targetUser: targetNick,
+                manager: permCheck.managerUsername,
+                managerRank: permCheck.managerRank.name,
+                branch: branchName,
+                reason: reason
+              });
+            }
+          }
+        } catch (e) {
+          console.error(`${branchName} grubundan atma hatası:`, e.message);
+        }
+      }
+    }
+  }
+
+  if (removedBranches.length > 0) {
+    const embed = new EmbedBuilder()
+      .setTitle('İşlem Başarılı')
+      .setDescription(`**${targetNick}** kullanıcısı branşlardan atıldı.`)
+      .addFields(
+        { name: 'Atılan Branşlar', value: removedBranches.join(', '), inline: false },
+        { name: 'Sebep', value: reason, inline: false }
+      )
+      .setColor(0xED4245)
+      .setTimestamp();
+    await interaction.editReply({ embeds: [embed] });
+  } else {
+    await interaction.editReply({ embeds: [createErrorEmbed('Kullanıcı herhangi bir branş grubunda bulunamadı veya yetkiniz yetersiz.')] });
+  }
 }
 
 async function handleBranchRequest(interaction) {
