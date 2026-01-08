@@ -1680,6 +1680,3 @@ async function handleBranchActivityQuery(interaction) {
 // PORT handling moved up to PORT_NUM section
 // End of file cleanup
 client.login(DISCORD_TOKEN);
-
-// Removing the stray code that caused SyntaxError and duplicate declarations
-client.login(DISCORD_TOKEN);
