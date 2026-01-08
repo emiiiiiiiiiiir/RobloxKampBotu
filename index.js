@@ -930,24 +930,26 @@ async function checkAccountSync(interaction) {
   }
 
   // 2. RoWifi API üzerinden otomatik çekmeye çalış
-  try {
-    const response = await axios.get(`https://api.rowifi.xyz/v2/guilds/${guildId}/members/${discordUserId}`, {
-      headers: { 'Authorization': `Bearer ${rowifiToken}` },
-      timeout: 5000
-    });
+  if (rowifiToken && rowifiToken !== 'ROWIFI_API_TOKEN_BURAYA') {
+    try {
+      const response = await axios.get(`https://api.rowifi.xyz/v3/guilds/${guildId}/members/${discordUserId}`, {
+        headers: { 'Authorization': `Bot ${rowifiToken}` },
+        timeout: 5000
+      });
 
-    if (response.data && response.data.roblox_id) {
-      const robloxInfo = await robloxAPI.getUserInfo(response.data.roblox_id);
-      if (robloxInfo) {
-        // Otomatik kaydet
-        const links = loadAccountLinks();
-        links[discordUserId] = robloxInfo.name;
-        saveAccountLinks(links);
-        return { username: robloxInfo.name, robloxId: response.data.roblox_id };
+      if (response.data && response.data.roblox_id) {
+        const robloxInfo = await robloxAPI.getUserInfo(response.data.roblox_id);
+        if (robloxInfo) {
+          // Otomatik kaydet
+          const links = loadAccountLinks();
+          links[discordUserId] = robloxInfo.name;
+          saveAccountLinks(links);
+          return { username: robloxInfo.name, robloxId: response.data.roblox_id };
+        }
       }
+    } catch (error) {
+      console.error('checkAccountSync RoWifi API hatası:', error.response?.data || error.message);
     }
-  } catch (error) {
-    console.error('checkAccountSync RoWifi API hatası:', error.message);
   }
 
   await interaction.editReply({ 
@@ -963,9 +965,15 @@ async function handleYenile(interaction) {
   const guildId = interaction.guildId;
   const rowifiToken = process.env.ROWIFI_API_TOKEN;
 
+  if (!rowifiToken || rowifiToken === 'ROWIFI_API_TOKEN_BURAYA') {
+    return interaction.editReply({
+      embeds: [createErrorEmbed('Sistemde RoWifi API Token tanımlanmamış. Lütfen yöneticiye başvurun.')]
+    });
+  }
+
   try {
-    const response = await axios.get(`https://api.rowifi.xyz/v2/guilds/${guildId}/members/${discordUserId}`, {
-      headers: { 'Authorization': `Bearer ${rowifiToken}` },
+    const response = await axios.get(`https://api.rowifi.xyz/v3/guilds/${guildId}/members/${discordUserId}`, {
+      headers: { 'Authorization': `Bot ${rowifiToken}` },
       timeout: 5000
     });
 
@@ -1000,9 +1008,10 @@ async function handleYenile(interaction) {
       });
     }
   } catch (error) {
-    console.error('Yenileme hatası:', error.message);
+    console.error('Yenileme hatası:', error.response?.data || error.message);
+    const errorDetail = error.response?.status === 403 ? 'Yetki hatası (403). Lütfen API Token\'ın doğru sunucuya ait olduğundan ve geçerli olduğundan emin olun.' : 'RoWifi bilgileri alınırken bir hata oluştu.';
     await interaction.editReply({
-      embeds: [createErrorEmbed('RoWifi bilgileri alınırken bir hata oluştu. Lütfen RoWifi entegrasyonunun aktif olduğundan emin olun.')]
+      embeds: [createErrorEmbed(errorDetail)]
     });
   }
 }
