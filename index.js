@@ -531,7 +531,7 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName('demote')
-    .setDescription('Kullanıcının rütbesini en alt rütbeye çeker ve tüm branş gruplarından atar')
+    .setDescription('Kullanıcıyı bulunduğu branş gruplarından atar ve ana grupta en alt rütbeye çeker')
     .addStringOption(option =>
       option.setName('kişi')
         .setDescription('İşlem yapılacak kişinin Roblox kullanıcı adı')
@@ -1352,6 +1352,18 @@ async function handleDemote(interaction) {
   const result = await robloxAPI.setUserRole(targetUserId, config.groupId, minRole.id, ROBLOX_COOKIE);
   
   if (result && !result.error) {
+    // Branş gruplarından atma işlemi
+    if (config.branchGroups) {
+      for (const branchName in config.branchGroups) {
+        const branchId = config.branchGroups[branchName];
+        if (branchId && branchId !== 'GRUP_ID_BURAYA') {
+          await robloxAPI.kickUser(targetUserId, branchId, ROBLOX_COOKIE).catch(e => {
+            console.error(`${branchName} grubundan atma hatası:`, e.message);
+          });
+        }
+      }
+    }
+
     await sendRankChangeWebhook({
       type: 'demotion',
       targetUser: targetNick,
@@ -1364,7 +1376,7 @@ async function handleDemote(interaction) {
 
     const embed = new EmbedBuilder()
       .setTitle('İşlem Başarılı')
-      .setDescription(`**${targetNick}** kullanıcısı başarıyla demote edildi.`)
+      .setDescription(`**${targetNick}** kullanıcısı branş gruplarından atıldı ve ana grupta rütbesi en alta çekildi.`)
       .addFields(
         { name: 'Hedef Kullanıcı', value: targetNick, inline: true },
         { name: 'Eski Rütbe', value: targetRank ? targetRank.name : 'Bilinmiyor', inline: true },
@@ -1373,7 +1385,6 @@ async function handleDemote(interaction) {
       )
       .setThumbnail(`https://www.roblox.com/headshot-thumbnail/image?userId=${targetUserId}&width=420&height=420&format=png`)
       .setColor(0xED4245)
-      .setFooter({ text: 'AEK Demote Sistemi', iconURL: interaction.user.displayAvatarURL() })
       .setTimestamp();
 
     await interaction.editReply({ embeds: [embed] });
