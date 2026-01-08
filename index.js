@@ -530,6 +530,20 @@ const commands = [
     ),
 
   new SlashCommandBuilder()
+    .setName('demote')
+    .setDescription('Kullanıcının rütbesini 1 yapar ve tüm branş gruplarından atar')
+    .addStringOption(option =>
+      option.setName('kişi')
+        .setDescription('İşlem yapılacak kişinin Roblox kullanıcı adı')
+        .setRequired(true)
+    )
+    .addStringOption(option =>
+      option.setName('sebep')
+        .setDescription('İşlem sebebi')
+        .setRequired(true)
+    ),
+
+  new SlashCommandBuilder()
     .setName('ticket-setup')
     .setDescription('Destek sistemi mesajını gönderir')
 ].map(command => command.toJSON());
