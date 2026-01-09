@@ -1573,10 +1573,12 @@ async function handleAnnouncement(interaction) {
 }
 
 async function handleTicketSetup(interaction) {
+  const imageUrl = config.ticketImageUrl || 'https://cdn.discordapp.com/attachments/1119330101861781534/1119330102146990141/AEK_Logo.png';
+  
   const embed = new EmbedBuilder()
     .setTitle('Turkish Armed Forces')
     .setDescription('**Moderatör Bileti**\nDiscord ile ilgili yaşanan sorunlar ve yardım talepleri için bu bileti seç.\n\n**Gamepass Bileti**\nRobux ile rütbe, branş üyeliği alımında bu bilet türünü seç.\n\n**Oyun Destek Bileti**\nOyunumuzda yaşanan sorunlar hakkında yardım almak için bu bileti seç.\n\n**Rütbe Destek Bileti**\nRütbeniz hakkında yaşanan sorunlar hakkında yardım almak için bu bileti seç.(Rütbem Gitti)\n\n**Reklam Destek Bileti**\nDiscord veya Oyun üzerinde reklam yapan insanları şikayet edebilmek için bu bilet türünü seç.\n\n**Geri Dönüş&Transfer Bileti**\nGeri dönüş veya transfer işlemleri hakkında destek almak için bu bileti seç.')
-    .setImage('https://cdn.discordapp.com/attachments/1119330101861781534/1119330102146990141/AEK_Logo.png') // AEK Logosunu güncel link ile değiştirdim
+    .setImage(imageUrl)
     .setColor(0x2B2D31);
   
   const row = new ActionRowBuilder().addComponents(
