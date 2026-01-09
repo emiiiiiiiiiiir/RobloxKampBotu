@@ -1684,15 +1684,23 @@ async function handleTicketClose(interaction) {
   const channel = interaction.channel;
   const user = interaction.user;
 
+  // Hemen yanıt vererek zaman aşımını (Unknown Interaction) önle
+  await interaction.reply({ content: 'Bilet kapatılıyor ve transcript hazırlanıyor...', flags: 64 }).catch(() => {});
+
   // Transcript oluşturma (basit metin bazlı)
   let transcript = `Bilet Transcript - ${channel.name}\n\n`;
-  const messages = await channel.messages.fetch({ limit: 100 });
-  const sortedMessages = messages.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
-  
-  sortedMessages.forEach(m => {
-    transcript += `[${new Date(m.createdTimestamp).toLocaleString('tr-TR')}] ${m.author.tag}: ${m.content}\n`;
-    if (m.embeds.length > 0) transcript += `[Embed Mesajı]\n`;
-  });
+  try {
+    const messages = await channel.messages.fetch({ limit: 100 });
+    const sortedMessages = messages.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+    
+    sortedMessages.forEach(m => {
+      transcript += `[${new Date(m.createdTimestamp).toLocaleString('tr-TR')}] ${m.author.tag}: ${m.content}\n`;
+      if (m.embeds.length > 0) transcript += `[Embed Mesajı]\n`;
+    });
+  } catch (e) {
+    console.error("Transcript mesaj çekme hatası:", e);
+    transcript += "Mesajlar çekilirken bir hata oluştu.\n";
+  }
 
   // Log kanalına transcript gönder
   if (config.ticketLogChannelId) {
@@ -1711,7 +1719,7 @@ async function handleTicketClose(interaction) {
       await logChannel.send({ 
         embeds: [logEmbed],
         files: [{ attachment: buffer, name: `${channel.name}-transcript.txt` }]
-      });
+      }).catch(e => console.error("Log kanalına gönderim hatası:", e));
     }
   }
 
@@ -1741,8 +1749,7 @@ async function handleTicketClose(interaction) {
     console.error("Transcript DM hatası:", e);
   }
 
-  await interaction.reply({ content: 'Bilet kapatılıyor...' });
-  setTimeout(() => channel.delete().catch(() => {}), 5000);
+  setTimeout(() => channel.delete().catch(() => {}), 2000);
 }
 
 async function handleTicketClaim(interaction) {
