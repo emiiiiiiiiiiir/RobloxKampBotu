@@ -1576,7 +1576,7 @@ async function handleTicketSetup(interaction) {
   const embed = new EmbedBuilder()
     .setTitle('Turkish Armed Forces')
     .setDescription('**Moderatör Bileti**\nDiscord ile ilgili yaşanan sorunlar ve yardım talepleri için bu bileti seç.\n\n**Gamepass Bileti**\nRobux ile rütbe, branş üyeliği alımında bu bilet türünü seç.\n\n**Oyun Destek Bileti**\nOyunumuzda yaşanan sorunlar hakkında yardım almak için bu bileti seç.\n\n**Rütbe Destek Bileti**\nRütbeniz hakkında yaşanan sorunlar hakkında yardım almak için bu bileti seç.(Rütbem Gitti)\n\n**Reklam Destek Bileti**\nDiscord veya Oyun üzerinde reklam yapan insanları şikayet edebilmek için bu bilet türünü seç.\n\n**Geri Dönüş&Transfer Bileti**\nGeri dönüş veya transfer işlemleri hakkında destek almak için bu bileti seç.')
-    .setImage('https://media.discordapp.net/attachments/1119330101861781534/1119330102146990141/AEK_Logo.png') // Resim URL'sini görseldeki gibi bir AEK görseliyle güncelledim
+    .setImage('https://i.imgur.com/vHqB3pG.jpeg') // Resim URL'sini görseldeki gibi bir AEK görseliyle güncelledim
     .setColor(0x2B2D31);
   
   const row = new ActionRowBuilder().addComponents(
@@ -1591,12 +1591,12 @@ async function handleTicketMenuButton(interaction) {
     .setCustomId('ticket_category')
     .setPlaceholder('Bir bilet türü seçin')
     .addOptions([
-      { label: 'Moderatör Bileti', value: 'mod' },
-      { label: 'Gamepass Bileti', value: 'gamepass' },
-      { label: 'Oyun Destek Bileti', value: 'oyun' },
-      { label: 'Rütbe Destek Bileti', value: 'rutbe' },
-      { label: 'Reklam Destek Bileti', value: 'reklam' },
-      { label: 'Geri Dönüş&Transfer Bileti', value: 'transfer' }
+      { label: 'Moderatör Bileti', value: 'mod', description: 'Discord sorunları ve yardım talepleri' },
+      { label: 'Gamepass Bileti', value: 'gamepass', description: 'Robux ile rütbe/branş alımı' },
+      { label: 'Oyun Destek Bileti', value: 'game_support', description: 'Oyun içi yardım' },
+      { label: 'Rütbe Destek Bileti', value: 'rank_support', description: 'Rütbe sorunları' },
+      { label: 'Reklam Destek Bileti', value: 'report', description: 'Reklam şikayetleri' },
+      { label: 'Geri Dönüş&Transfer Bileti', value: 'transfer', description: 'Geri dönüş veya transfer' }
     ]);
 
   await interaction.reply({ content: 'Lütfen talep kategorisini seçin:', components: [new ActionRowBuilder().addComponents(menu)], flags: 64 });
@@ -1604,8 +1604,57 @@ async function handleTicketMenuButton(interaction) {
 
 async function handleTicketCategorySelect(interaction) {
   const category = interaction.values[0];
-  await interaction.reply({ content: `**${category}** kategorisinde ticket açılıyor...`, flags: 64 });
-  // Kanal oluşturma vb. mantık buraya gelir
+  const guild = interaction.guild;
+  const user = interaction.user;
+
+  const categoryNames = {
+    'mod': 'Moderatör',
+    'gamepass': 'Gamepass',
+    'game_support': 'Oyun Destek',
+    'rank_support': 'Rütbe Destek',
+    'report': 'Reklam Şikayet',
+    'transfer': 'Geri Dönüş/Transfer'
+  };
+
+  const channelName = `ticket-${category}-${user.username}`.toLowerCase();
+  
+  try {
+    const channel = await guild.channels.create({
+      name: channelName,
+      type: ChannelType.GuildText,
+      permissionOverwrites: [
+        {
+          id: guild.id,
+          deny: [PermissionFlagsBits.ViewChannel],
+        },
+        {
+          id: user.id,
+          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
+        },
+        ...config.adminRoleIds.map(roleId => ({
+          id: roleId,
+          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
+        }))
+      ],
+    });
+
+    const embed = new EmbedBuilder()
+      .setTitle('Bilet Açıldı')
+      .setDescription(`Merhaba ${user}, **${categoryNames[category]}** kategorisinde bir bilet açtınız. Yetkililer en kısa sürede size yardımcı olacaktır.`)
+      .setColor(0x5865F2)
+      .setTimestamp();
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('close_ticket').setLabel('Bileti Kapat').setStyle(ButtonStyle.Danger),
+      new ButtonBuilder().setCustomId('claim_ticket').setLabel('Bileti Üstlen').setStyle(ButtonStyle.Success)
+    );
+
+    await channel.send({ content: `${user} | <@&${config.adminRoleIds[0]}>`, embeds: [embed], components: [row] });
+    await interaction.reply({ content: `Biletiniz açıldı: ${channel}`, flags: 64 });
+  } catch (error) {
+    console.error('Ticket açma hatası:', error);
+    await interaction.reply({ content: 'HATA: Bilet kanalı oluşturulamadı!', flags: 64 });
+  }
 }
 
 async function handleTicketClose(interaction) {
