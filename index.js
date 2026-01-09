@@ -1622,6 +1622,7 @@ async function handleTicketCategorySelect(interaction) {
     const channel = await guild.channels.create({
       name: channelName,
       type: ChannelType.GuildText,
+      parent: config.ticketCategoryId || null,
       permissionOverwrites: [
         {
           id: guild.id,
@@ -1631,10 +1632,13 @@ async function handleTicketCategorySelect(interaction) {
           id: user.id,
           allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
         },
-        ...config.adminRoleIds.map(roleId => ({
-          id: roleId,
-          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
-        }))
+        ...config.adminRoleIds.map(roleIdStr => {
+          const ids = roleIdStr.split(',').map(s => s.trim());
+          return ids.map(id => ({
+            id: id,
+            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
+          }));
+        }).flat()
       ],
     });
 
