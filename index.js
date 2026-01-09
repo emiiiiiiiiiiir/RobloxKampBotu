@@ -1618,7 +1618,7 @@ async function handleTicketCategorySelect(interaction) {
     'transfer': 'Geri Dönüş/Transfer'
   };
 
-  const channelName = `ticket-${category}-${user.username}`.toLowerCase();
+  const channelName = `bilet-${category}-${user.username}`.toLowerCase();
   
   try {
     const channel = await guild.channels.create({
@@ -1657,6 +1657,23 @@ async function handleTicketCategorySelect(interaction) {
 
     await channel.send({ content: `${user} | <@&${config.adminRoleIds[0]}>`, embeds: [embed], components: [row] });
     await interaction.reply({ content: `Biletiniz açıldı: ${channel}`, flags: 64 });
+    
+    // Log kanalına mesaj gönder
+    if (config.ticketLogChannelId) {
+      const logChannel = guild.channels.cache.get(config.ticketLogChannelId);
+      if (logChannel) {
+        const logEmbed = new EmbedBuilder()
+          .setTitle('Yeni Bilet Açıldı')
+          .addFields(
+            { name: 'Kullanıcı', value: `${user} (${user.id})`, inline: true },
+            { name: 'Kategori', value: categoryNames[category], inline: true },
+            { name: 'Kanal', value: `${channel}`, inline: true }
+          )
+          .setColor(0x5865F2)
+          .setTimestamp();
+        await logChannel.send({ embeds: [logEmbed] });
+      }
+    }
   } catch (error) {
     console.error('Ticket açma hatası:', error);
     await interaction.reply({ content: 'HATA: Bilet kanalı oluşturulamadı!', flags: 64 });
@@ -1664,7 +1681,68 @@ async function handleTicketCategorySelect(interaction) {
 }
 
 async function handleTicketClose(interaction) {
-  await interaction.channel.delete().catch(() => {});
+  const channel = interaction.channel;
+  const user = interaction.user;
+
+  // Transcript oluşturma (basit metin bazlı)
+  let transcript = `Bilet Transcript - ${channel.name}\n\n`;
+  const messages = await channel.messages.fetch({ limit: 100 });
+  const sortedMessages = messages.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+  
+  sortedMessages.forEach(m => {
+    transcript += `[${new Date(m.createdTimestamp).toLocaleString('tr-TR')}] ${m.author.tag}: ${m.content}\n`;
+    if (m.embeds.length > 0) transcript += `[Embed Mesajı]\n`;
+  });
+
+  // Log kanalına transcript gönder
+  if (config.ticketLogChannelId) {
+    const logChannel = interaction.guild.channels.cache.get(config.ticketLogChannelId);
+    if (logChannel) {
+      const logEmbed = new EmbedBuilder()
+        .setTitle('Bilet Kapatıldı')
+        .addFields(
+          { name: 'Kapatan', value: `${user.tag}`, inline: true },
+          { name: 'Kanal', value: `${channel.name}`, inline: true }
+        )
+        .setColor(0xED4245)
+        .setTimestamp();
+      
+      const buffer = Buffer.from(transcript, 'utf-8');
+      await logChannel.send({ 
+        embeds: [logEmbed],
+        files: [{ attachment: buffer, name: `${channel.name}-transcript.txt` }]
+      });
+    }
+  }
+
+  // Kullanıcıya DM gönder
+  try {
+    const ticketOwnerMatch = channel.name.match(/bilet-[^-]+-(.+)/);
+    if (ticketOwnerMatch) {
+      const ownerUsername = ticketOwnerMatch[1];
+      const guildMembers = await interaction.guild.members.fetch();
+      const owner = guildMembers.find(m => m.user.username.toLowerCase() === ownerUsername.toLowerCase());
+      
+      if (owner) {
+        const dmEmbed = new EmbedBuilder()
+          .setTitle('Biletiniz Kapatıldı')
+          .setDescription(`**${interaction.guild.name}** sunucusundaki biletiniz kapatıldı. Aşağıda biletinizin dökümü (transcript) yer almaktadır.`)
+          .setColor(0x5865F2)
+          .setTimestamp();
+          
+        const buffer = Buffer.from(transcript, 'utf-8');
+        await owner.send({ 
+          embeds: [dmEmbed],
+          files: [{ attachment: buffer, name: `bilet-dokumu.txt` }]
+        }).catch(() => console.log("Kullanıcıya DM gönderilemedi."));
+      }
+    }
+  } catch (e) {
+    console.error("Transcript DM hatası:", e);
+  }
+
+  await interaction.reply({ content: 'Bilet kapatılıyor...' });
+  setTimeout(() => channel.delete().catch(() => {}), 5000);
 }
 
 async function handleTicketClaim(interaction) {
