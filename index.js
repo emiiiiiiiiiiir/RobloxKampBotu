@@ -1753,7 +1753,26 @@ async function handleTicketClose(interaction) {
 }
 
 async function handleTicketClaim(interaction) {
-  await interaction.reply({ content: `Ticket <@${interaction.user.id}> tarafından üstlenildi.` });
+  const user = interaction.user;
+  const channel = interaction.channel;
+  
+  await interaction.reply({ content: `Bilet <@${user.id}> tarafından üstlenildi.` });
+
+  // Log kanalına bilgi gönder
+  if (config.ticketLogChannelId) {
+    const logChannel = interaction.guild.channels.cache.get(config.ticketLogChannelId);
+    if (logChannel) {
+      const logEmbed = new EmbedBuilder()
+        .setTitle('Bilet Üstlenildi')
+        .addFields(
+          { name: 'Yetkili', value: `${user.tag} (${user.id})`, inline: true },
+          { name: 'Bilet', value: `${channel.name}`, inline: true }
+        )
+        .setColor(0x57F287)
+        .setTimestamp();
+      await logChannel.send({ embeds: [logEmbed] });
+    }
+  }
 }
 
 async function handleBranchActivityQuery(interaction) {
