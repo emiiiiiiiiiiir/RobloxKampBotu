@@ -1655,7 +1655,13 @@ async function handleTicketCategorySelect(interaction) {
       new ButtonBuilder().setCustomId('claim_ticket').setLabel('Bileti Üstlen').setStyle(ButtonStyle.Success)
     );
 
-    await channel.send({ content: `${user} | <@&${config.adminRoleIds[0]}>`, embeds: [embed], components: [row] });
+    const supportMention = config.supportRoleIds && config.supportRoleIds.length > 0 
+      ? config.supportRoleIds.map(roleIdStr => {
+          return roleIdStr.split(',').map(id => `<@&${id.trim()}>`).join(' ');
+        }).join(' ')
+      : `<@&${config.adminRoleIds[0].split(',')[0].trim()}>`;
+
+    await channel.send({ content: `${user} | ${supportMention}`, embeds: [embed], components: [row] });
     await interaction.reply({ content: `Biletiniz açıldı: ${channel}`, flags: 64 });
     
     // Log kanalına mesaj gönder
