@@ -1670,12 +1670,12 @@ async function handleTicketSetup(interaction) {
     .setCustomId('ticket_category')
     .setPlaceholder('Destek Kategorisi Seç!')
     .addOptions([
-      { label: 'Moderatör Bileti', value: 'mod', description: 'Discord sorunları ve yardım talepleri için', emoji: { name: 'aek_mod', id: '1487643681224921259' } },
-      { label: 'Gamepass Bileti', value: 'gamepass', description: 'Robux ile rütbe veya branş üyeliği alımı için', emoji: { name: 'takviye_aek', id: '1487643814242816061' } },
-      { label: 'Oyun Destek Bileti', value: 'game_support', description: 'Oyunumuzda yaşanan sorunlar için', emoji: { name: 'aek_ynalgelis', id: '1487644124088766716' } },
-      { label: 'Rütbe Destek Bileti', value: 'rank_support', description: 'Rütbeniz hakkında yaşanan sorunlar için', emoji: { name: 'rutbe', id: '1487643303515132127' } },
-      { label: 'Reklam Destek Bileti', value: 'report', description: 'Reklam yapan kişileri şikayet etmek için', emoji: { name: 'uyarii', id: '1487643961479790792' } },
-      { label: 'Geri Dönüş & Transfer Bileti', value: 'transfer', description: 'Geri dönüş veya transfer işlemleri için', emoji: { name: 'personel', id: '1487644244389920832' } }
+      { label: 'Moderatör Bileti', value: 'mod', description: 'Discord sorunları ve yardım talepleri için' },
+      { label: 'Gamepass Bileti', value: 'gamepass', description: 'Robux ile rütbe veya branş üyeliği alımı için' },
+      { label: 'Oyun Destek Bileti', value: 'game_support', description: 'Oyunumuzda yaşanan sorunlar için' },
+      { label: 'Rütbe Destek Bileti', value: 'rank_support', description: 'Rütbeniz hakkında yaşanan sorunlar için' },
+      { label: 'Reklam Destek Bileti', value: 'report', description: 'Reklam yapan kişileri şikayet etmek için' },
+      { label: 'Geri Dönüş & Transfer Bileti', value: 'transfer', description: 'Geri dönüş veya transfer işlemleri için' }
     ]);
 
   const row = new ActionRowBuilder().addComponents(menu);
