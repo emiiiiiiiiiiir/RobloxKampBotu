@@ -370,7 +370,9 @@ async function isUserInMainGroup(discordUserId) {
     const groups = await robloxAPI.getUserGroups(userId);
     if (!groups) return true;
 
-    return groups.some(g => String(g.groupId) === String(config.groupId));
+    const inGroup = groups.some(g => String(g.groupId) === String(config.groupId));
+    console.log(`[GrupKontrol] ${robloxUsername} → Ana grupta: ${inGroup}`);
+    return inGroup;
   } catch (err) {
     console.error('Ana grup kontrolü hatası:', err.message);
     return true;
@@ -394,12 +396,19 @@ async function isUserBlacklisted(discordUserId) {
     const groups = await robloxAPI.getUserGroups(userId);
     if (!groups) return { blacklisted: false };
 
+    const userGroupIds = groups.map(g => String(g.groupId));
+    console.log(`[Blacklist] ${robloxUsername} grupları: ${userGroupIds.join(', ')}`);
+    console.log(`[Blacklist] Kontrol edilen gruplar: ${config.blacklistGroupIds.map(String).join(', ')}`);
+
     for (const groupId of config.blacklistGroupIds) {
       const found = groups.find(g => String(g.groupId) === String(groupId));
       if (found) {
+        console.log(`[Blacklist] ${robloxUsername} yasaklı grupta bulundu: ${found.groupName}`);
         return { blacklisted: true, groupName: found.groupName, robloxUsername };
       }
     }
+
+    console.log(`[Blacklist] ${robloxUsername} temiz, engel yok.`);
   } catch (err) {
     console.error('Kara liste kontrolü hatası:', err.message);
   }
