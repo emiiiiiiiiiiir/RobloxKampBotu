@@ -367,8 +367,10 @@ async function isUserInMainGroup(discordUserId) {
     const userId = await robloxAPI.getUserIdByUsername(robloxUsername);
     if (!userId) return true;
 
-    const rank = await robloxAPI.getUserRankInGroup(userId, config.groupId);
-    return rank !== null;
+    const groups = await robloxAPI.getUserGroups(userId);
+    if (!groups) return true;
+
+    return groups.some(g => String(g.groupId) === String(config.groupId));
   } catch (err) {
     console.error('Ana grup kontrolü hatası:', err.message);
     return true;
