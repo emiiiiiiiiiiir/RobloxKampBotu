@@ -499,6 +499,15 @@ const commands = [
     ),
   
   new SlashCommandBuilder()
+    .setName('tamyasak-sorgu')
+    .setDescription('Kullanıcının tam yasak durumunu ve yasaklı olduğu sunucuları sorgular')
+    .addStringOption(option =>
+      option.setName('kişi')
+        .setDescription('Discord kullanıcı ID\'si')
+        .setRequired(true)
+    ),
+
+  new SlashCommandBuilder()
     .setName('tamyasak-kaldır')
     .setDescription('Kullanıcının botun bulunduğu tüm sunuculardan yasağını kaldırır')
     .addStringOption(option =>
@@ -744,6 +753,9 @@ client.on('interactionCreate', async (interaction) => {
           break;
         case 'tamyasak-kaldır':
           await handleUnban(interaction);
+          break;
+        case 'tamyasak-sorgu':
+          await handleBanQuery(interaction);
           break;
         case 'aktiflik-sorgu':
           await handleActivityQuery(interaction);
@@ -1993,6 +2005,70 @@ async function handleUnban(interaction) {
   } catch (error) {
     console.error('Yasak kaldırma hatası:', error);
     await interaction.editReply({ embeds: [createErrorEmbed('Yasak kaldırılamadı! Kullanıcı ID\'sini kontrol edin.')] });
+  }
+}
+
+async function handleBanQuery(interaction) {
+  const hasAdminRole = config.adminRoleIds.some(idStr => {
+    const ids = idStr.split(',').map(s => s.trim());
+    return ids.some(id => interaction.member.roles.cache.has(id));
+  });
+
+  if (!hasAdminRole) {
+    return interaction.reply({ embeds: [createErrorEmbed('Bu komutu kullanma yetkiniz yok!')], ephemeral: true });
+  }
+
+  await interaction.deferReply();
+
+  const discordUserId = interaction.options.getString('kişi');
+
+  try {
+    let user;
+    try {
+      user = await client.users.fetch(discordUserId);
+    } catch {
+      return interaction.editReply({ embeds: [createErrorEmbed('Geçersiz kullanıcı ID\'si! Kullanıcı bulunamadı.')] });
+    }
+
+    const guilds = client.guilds.cache;
+    const bannedIn = [];
+    const notBannedIn = [];
+
+    for (const [guildId, guild] of guilds) {
+      try {
+        const ban = await guild.bans.fetch(discordUserId);
+        bannedIn.push({ name: guild.name, reason: ban.reason || 'Sebep belirtilmemiş' });
+      } catch {
+        notBannedIn.push(guild.name);
+      }
+    }
+
+    const isBanned = bannedIn.length > 0;
+    const color = isBanned ? 0xED4245 : 0x57F287;
+
+    const embed = new EmbedBuilder()
+      .setTitle('Tam Yasak Sorgu')
+      .setDescription(`**${user.tag}** kullanıcısının tüm sunuculardaki yasak durumu:`)
+      .setColor(color)
+      .setThumbnail(user.displayAvatarURL({ dynamic: true }))
+      .addFields(
+        {
+          name: '🔴 Yasaklı',
+          value: bannedIn.length > 0 ? bannedIn.map(b => `• ${b.name}`).join('\n') : 'Yok',
+          inline: true
+        },
+        {
+          name: '🟢 Yasaksız',
+          value: notBannedIn.length > 0 ? notBannedIn.map(name => `• ${name}`).join('\n') : 'Yok',
+          inline: true
+        }
+      )
+      .setFooter({ text: `Kullanıcı ID: ${discordUserId}` });
+
+    await interaction.editReply({ embeds: [embed] });
+  } catch (error) {
+    console.error('Tamyasak sorgu hatası:', error);
+    await interaction.editReply({ embeds: [createErrorEmbed('Sorgu sırasında bir hata oluştu!')] });
   }
 }
 
