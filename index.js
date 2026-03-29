@@ -695,7 +695,7 @@ client.on('interactionCreate', async (interaction) => {
           embeds: [
             new EmbedBuilder()
               .setTitle('Erişim Reddedildi')
-              .setDescription(`**${blacklistCheck.robloxUsername}** adlı Roblox hesabın **${blacklistCheck.groupName}** grubunda bulunduğu için bot komutlarını kullanamazsın.`)
+              .setDescription(`**${blacklistCheck.groupName}** Kampında bulunduğunuz için komutları kullanamıyorsunuz.`)
               .setColor(0xED4245)
           ],
           flags: 64
