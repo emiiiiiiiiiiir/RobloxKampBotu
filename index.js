@@ -730,14 +730,7 @@ client.on('interactionCreate', async (interaction) => {
       const blacklistCheck = await isUserBlacklisted(interaction.user.id);
       if (blacklistCheck.blacklisted) {
         const campShortName = blacklistCheck.groupName.split(' ')[0];
-        await interaction.reply({
-          embeds: [
-            new EmbedBuilder()
-              .setTitle('Erişim Reddedildi')
-              .setDescription(`**${campShortName}** Kampında bulunduğunuz için komutları kullanamıyorsunuz.`)
-              .setColor(0xED4245)
-          ]
-        });
+        await interaction.reply({ content: `**${campShortName}** Kampında bulunduğunuz için komutları kullanamıyorsunuz.` });
         return;
       }
 
@@ -1892,14 +1885,7 @@ async function handleBan(interaction) {
     const guilds = client.guilds.cache;
 
     try {
-      await user.send({
-        embeds: [
-          new EmbedBuilder()
-            .setTitle('Sunucu Yasağı')
-            .setDescription(`**${interaction.user.username}** tarafından tüm AEK sunucularına yasaklandınız.\n**Sebep:** ${reason}`)
-            .setColor(0xED4245)
-        ]
-      });
+      await user.send(`**${interaction.user.username}** tarafından tüm AEK sunucularına yasaklandınız.\nSebep: ${reason}`);
     } catch (dmError) {
       console.warn(`DM gönderilemedi (${discordUserId}): ${dmError.message}`);
     }
