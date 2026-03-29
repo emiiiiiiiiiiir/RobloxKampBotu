@@ -2174,7 +2174,7 @@ async function handleBranchActivityQuery(interaction) {
 }
 
 // Otomatik ses kanalı bağlantısı
-client.once('ready', () => {
+client.once('clientReady', () => {
   const channelId = config.autoVoiceChannelId;
   const guildId = config.autoVoiceGuildId;
 
