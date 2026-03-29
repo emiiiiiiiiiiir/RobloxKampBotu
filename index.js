@@ -727,20 +727,6 @@ client.on('interactionCreate', async (interaction) => {
     const { commandName } = interaction;
 
     try {
-      if (commandName !== 'yenile') {
-        const inGroup = await isUserInMainGroup(interaction.user.id);
-        if (!inGroup) {
-          await interaction.reply({
-            embeds: [
-              new EmbedBuilder()
-                .setDescription('Grupta değilsin.')
-                .setColor(0xED4245)
-            ]
-          });
-          return;
-        }
-      }
-
       const blacklistCheck = await isUserBlacklisted(interaction.user.id);
       if (blacklistCheck.blacklisted) {
         const campShortName = blacklistCheck.groupName.split(' ')[0];
