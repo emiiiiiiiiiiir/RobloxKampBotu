@@ -1904,6 +1904,19 @@ async function handleBan(interaction) {
   try {
     const user = await client.users.fetch(discordUserId);
     const guilds = client.guilds.cache;
+
+    try {
+      await user.send({
+        embeds: [
+          new EmbedBuilder()
+            .setTitle('Sunucu Yasağı')
+            .setDescription(`**${interaction.user.username}** tarafından tüm AEK sunucularına yasaklandınız.\n**Sebep:** ${reason}`)
+            .setColor(0xED4245)
+        ]
+      });
+    } catch (dmError) {
+      console.warn(`DM gönderilemedi (${discordUserId}): ${dmError.message}`);
+    }
     
     const successGuilds = [];
     const failedGuilds = [];
