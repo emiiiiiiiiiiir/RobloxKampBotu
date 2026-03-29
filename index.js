@@ -359,6 +359,36 @@ async function sendBranchRequestWebhook(data) {
   }
 }
 
+async function isUserBlacklisted(discordUserId) {
+  if (!config.blacklistGroupIds || config.blacklistGroupIds.length === 0) {
+    return { blacklisted: false };
+  }
+
+  const robloxUsername = getLinkedRobloxUsername(discordUserId);
+  if (!robloxUsername) {
+    return { blacklisted: false };
+  }
+
+  try {
+    const userId = await robloxAPI.getUserIdByUsername(robloxUsername);
+    if (!userId) return { blacklisted: false };
+
+    const groups = await robloxAPI.getUserGroups(userId);
+    if (!groups) return { blacklisted: false };
+
+    for (const groupId of config.blacklistGroupIds) {
+      const found = groups.find(g => String(g.groupId) === String(groupId));
+      if (found) {
+        return { blacklisted: true, groupName: found.groupName, robloxUsername };
+      }
+    }
+  } catch (err) {
+    console.error('Kara liste kontrolü hatası:', err.message);
+  }
+
+  return { blacklisted: false };
+}
+
 function cleanExpiredVerifications() {
   const verifications = loadPendingVerifications();
   const now = Date.now();
@@ -659,6 +689,20 @@ client.on('interactionCreate', async (interaction) => {
     const { commandName } = interaction;
 
     try {
+      const blacklistCheck = await isUserBlacklisted(interaction.user.id);
+      if (blacklistCheck.blacklisted) {
+        await interaction.reply({
+          embeds: [
+            new EmbedBuilder()
+              .setTitle('Erişim Reddedildi')
+              .setDescription(`**${blacklistCheck.robloxUsername}** adlı Roblox hesabın **${blacklistCheck.groupName}** grubunda bulunduğu için bot komutlarını kullanamazsın.`)
+              .setColor(0xED4245)
+          ],
+          flags: 64
+        });
+        return;
+      }
+
       switch (commandName) {
         case 'rütbe-sorgu':
           await handleRankQuery(interaction);
