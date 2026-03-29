@@ -13,7 +13,8 @@ const {
   StringSelectMenuBuilder,
   ActivityType
 } = require('discord.js');
-const { joinVoiceChannel } = require('@discordjs/voice');
+const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, NoSubscriberBehavior } = require('@discordjs/voice');
+const playdl = require('play-dl');
 const config = require('./config.json');
 const robloxAPI = require('./src/roblox');
 const fs = require('fs');
@@ -2173,10 +2174,11 @@ async function handleBranchActivityQuery(interaction) {
   await interaction.editReply({ embeds: [embed] });
 }
 
-// Otomatik ses kanalı bağlantısı
+// Otomatik ses kanalı bağlantısı ve müzik çalma
 client.once('clientReady', () => {
   const channelId = config.autoVoiceChannelId;
   const guildId = config.autoVoiceGuildId;
+  const audioUrl = config.voiceAudioUrl;
 
   if (!channelId || !guildId) {
     console.log('Otomatik ses kanalı yapılandırılmamış, atlanıyor.');
@@ -2195,15 +2197,49 @@ client.once('clientReady', () => {
     return;
   }
 
-  joinVoiceChannel({
+  const connection = joinVoiceChannel({
     channelId: channelId,
     guildId: guildId,
     adapterCreator: guild.voiceAdapterCreator,
-    selfDeaf: true,
-    selfMute: true
+    selfDeaf: false,
+    selfMute: false
   });
 
   console.log(`Otomatik olarak "${channel.name}" ses kanalına bağlanıldı.`);
+
+  if (!audioUrl) {
+    console.log('Ses URL\'si tanımlanmamış, sadece kanala bağlanıldı.');
+    return;
+  }
+
+  const player = createAudioPlayer({
+    behaviors: { noSubscriber: NoSubscriberBehavior.Play }
+  });
+
+  const playAudio = async () => {
+    try {
+      const stream = await playdl.stream(audioUrl, { quality: 0 });
+      const resource = createAudioResource(stream.stream, { inputType: stream.type });
+      player.play(resource);
+    } catch (err) {
+      console.error('Ses oynatma hatası:', err.message);
+      setTimeout(playAudio, 5000);
+    }
+  };
+
+  player.on(AudioPlayerStatus.Idle, () => {
+    console.log('Parça bitti, yeniden başlatılıyor...');
+    setTimeout(playAudio, 1000);
+  });
+
+  player.on('error', (err) => {
+    console.error('Player hatası:', err.message);
+    setTimeout(playAudio, 5000);
+  });
+
+  connection.subscribe(player);
+  playAudio();
+  console.log('Müzik çalmaya başlandı (loop aktif).');
 });
 
 // PORT handling moved up to PORT_NUM section
