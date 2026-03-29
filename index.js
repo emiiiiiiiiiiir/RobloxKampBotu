@@ -679,10 +679,15 @@ client.on('clientReady', async () => {
   console.log(`Grup ID: ${config.groupId}`);
   console.log(`Oyun ID: ${config.gameId}`);
 
-  client.user.setPresence({
-    activities: [{ name: 'AEK Turkish Armed Forces', type: ActivityType.Playing }],
-    status: 'dnd'
-  });
+  const setStatus = () => {
+    client.user.setPresence({
+      activities: [{ name: 'AEK Turkish Armed Forces', type: ActivityType.Playing }],
+      status: 'dnd'
+    });
+  };
+
+  setTimeout(setStatus, 3000);
+  setInterval(setStatus, 30 * 60 * 1000);
   
   console.log('\nEski global komutlar siliniyor...');
   try {
