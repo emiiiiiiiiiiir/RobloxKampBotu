@@ -2053,12 +2053,12 @@ async function handleBanQuery(interaction) {
       .setThumbnail(user.displayAvatarURL({ dynamic: true }))
       .addFields(
         {
-          name: '🔴 Yasaklı',
+          name: 'Yasaklı',
           value: bannedIn.length > 0 ? bannedIn.map(b => `• ${b.name}`).join('\n') : 'Yok',
           inline: true
         },
         {
-          name: '🟢 Yasaksız',
+          name: 'Yasaksız',
           value: notBannedIn.length > 0 ? notBannedIn.map(name => `• ${name}`).join('\n') : 'Yok',
           inline: true
         }
