@@ -603,7 +603,8 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName('ticket-setup')
-    .setDescription('Destek sistemi mesajını gönderir'),
+    .setDescription('Destek sistemi mesajını gönderir')
+    .setDefaultMemberPermissions(0),
 
   new SlashCommandBuilder()
     .setName('branş-istek')
@@ -1648,6 +1649,15 @@ async function handleAnnouncement(interaction) {
 }
 
 async function handleTicketSetup(interaction) {
+  const hasAdminRole = config.adminRoleIds.some(idStr => {
+    const ids = idStr.split(',').map(s => s.trim());
+    return ids.some(id => interaction.member.roles.cache.has(id));
+  });
+
+  if (!hasAdminRole) {
+    return interaction.reply({ content: 'Bu komutu kullanma yetkiniz yok!', flags: 64 });
+  }
+
   const imageUrl = config.ticketImageUrl || 'https://cdn.discordapp.com/attachments/1119330101861781534/1119330102146990141/AEK_Logo.png';
   
   const embed = new EmbedBuilder()
