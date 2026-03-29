@@ -13,6 +13,7 @@ const {
   StringSelectMenuBuilder,
   ActivityType
 } = require('discord.js');
+const { joinVoiceChannel } = require('@discordjs/voice');
 const config = require('./config.json');
 const robloxAPI = require('./src/roblox');
 const fs = require('fs');
@@ -24,7 +25,8 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.GuildBans
+    GatewayIntentBits.GuildBans,
+    GatewayIntentBits.GuildVoiceStates
   ]
 });
 
@@ -2170,6 +2172,39 @@ async function handleBranchActivityQuery(interaction) {
   
   await interaction.editReply({ embeds: [embed] });
 }
+
+// Otomatik ses kanalı bağlantısı
+client.once('ready', () => {
+  const channelId = config.autoVoiceChannelId;
+  const guildId = config.autoVoiceGuildId;
+
+  if (!channelId || !guildId) {
+    console.log('Otomatik ses kanalı yapılandırılmamış, atlanıyor.');
+    return;
+  }
+
+  const guild = client.guilds.cache.get(guildId);
+  if (!guild) {
+    console.warn(`Ses kanalı için sunucu bulunamadı: ${guildId}`);
+    return;
+  }
+
+  const channel = guild.channels.cache.get(channelId);
+  if (!channel) {
+    console.warn(`Ses kanalı bulunamadı: ${channelId}`);
+    return;
+  }
+
+  joinVoiceChannel({
+    channelId: channelId,
+    guildId: guildId,
+    adapterCreator: guild.voiceAdapterCreator,
+    selfDeaf: true,
+    selfMute: true
+  });
+
+  console.log(`Otomatik olarak "${channel.name}" ses kanalına bağlanıldı.`);
+});
 
 // PORT handling moved up to PORT_NUM section
 // End of file cleanup
