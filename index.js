@@ -10,7 +10,8 @@ const {
   ActionRowBuilder,
   ChannelType,
   PermissionFlagsBits,
-  StringSelectMenuBuilder
+  StringSelectMenuBuilder,
+  ActivityType
 } = require('discord.js');
 const config = require('./config.json');
 const robloxAPI = require('./src/roblox');
@@ -677,6 +678,11 @@ client.on('clientReady', async () => {
   console.log(`${client.user.tag} olarak giriş yapıldı`);
   console.log(`Grup ID: ${config.groupId}`);
   console.log(`Oyun ID: ${config.gameId}`);
+
+  client.user.setPresence({
+    activities: [{ name: 'AEK Turkish Armed Forces', type: ActivityType.Playing }],
+    status: 'online'
+  });
   
   console.log('\nEski global komutlar siliniyor...');
   try {
