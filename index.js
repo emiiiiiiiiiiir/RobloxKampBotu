@@ -1680,7 +1680,9 @@ async function handleTicketSetup(interaction) {
 
   const row = new ActionRowBuilder().addComponents(menu);
 
-  await interaction.reply({ embeds: [embed], components: [row] });
+  await interaction.channel.send({ embeds: [embed], components: [row] });
+  await interaction.reply({ content: '✓', flags: 64 });
+  await interaction.deleteReply();
 }
 
 async function handleTicketMenuButton(interaction) {
