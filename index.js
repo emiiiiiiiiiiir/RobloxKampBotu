@@ -1668,7 +1668,7 @@ async function handleTicketSetup(interaction) {
   
   const menu = new StringSelectMenuBuilder()
     .setCustomId('ticket_category')
-    .setPlaceholder('🎫 Bir destek kategorisi seçin...')
+    .setPlaceholder('Destek Kategorisi Seç!')
     .addOptions([
       { label: '🛡️ Moderatör Bileti', value: 'mod', description: 'Discord sorunları ve yardım talepleri için' },
       { label: '💎 Gamepass Bileti', value: 'gamepass', description: 'Robux ile rütbe veya branş üyeliği alımı için' },
