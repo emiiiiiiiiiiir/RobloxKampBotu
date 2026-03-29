@@ -359,6 +359,22 @@ async function sendBranchRequestWebhook(data) {
   }
 }
 
+async function isUserInMainGroup(discordUserId) {
+  const robloxUsername = getLinkedRobloxUsername(discordUserId);
+  if (!robloxUsername) return true;
+
+  try {
+    const userId = await robloxAPI.getUserIdByUsername(robloxUsername);
+    if (!userId) return true;
+
+    const rank = await robloxAPI.getUserRankInGroup(userId, config.groupId);
+    return rank !== null;
+  } catch (err) {
+    console.error('Ana grup kontrolü hatası:', err.message);
+    return true;
+  }
+}
+
 async function isUserBlacklisted(discordUserId) {
   if (!config.blacklistGroupIds || config.blacklistGroupIds.length === 0) {
     return { blacklisted: false };
@@ -689,6 +705,20 @@ client.on('interactionCreate', async (interaction) => {
     const { commandName } = interaction;
 
     try {
+      if (commandName !== 'yenile') {
+        const inGroup = await isUserInMainGroup(interaction.user.id);
+        if (!inGroup) {
+          await interaction.reply({
+            embeds: [
+              new EmbedBuilder()
+                .setDescription('Grupta değilsin.')
+                .setColor(0xED4245)
+            ]
+          });
+          return;
+        }
+      }
+
       const blacklistCheck = await isUserBlacklisted(interaction.user.id);
       if (blacklistCheck.blacklisted) {
         const campShortName = blacklistCheck.groupName.split(' ')[0];
