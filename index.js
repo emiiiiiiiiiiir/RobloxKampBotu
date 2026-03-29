@@ -681,7 +681,7 @@ client.on('clientReady', async () => {
 
   client.user.setPresence({
     activities: [{ name: 'AEK Turkish Armed Forces', type: ActivityType.Playing }],
-    status: 'online'
+    status: 'dnd'
   });
   
   console.log('\nEski global komutlar siliniyor...');
