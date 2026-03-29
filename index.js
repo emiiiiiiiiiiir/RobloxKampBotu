@@ -691,14 +691,14 @@ client.on('interactionCreate', async (interaction) => {
     try {
       const blacklistCheck = await isUserBlacklisted(interaction.user.id);
       if (blacklistCheck.blacklisted) {
+        const campShortName = blacklistCheck.groupName.split(' ')[0];
         await interaction.reply({
           embeds: [
             new EmbedBuilder()
               .setTitle('Erişim Reddedildi')
-              .setDescription(`**${blacklistCheck.groupName}** Kampında bulunduğunuz için komutları kullanamıyorsunuz.`)
+              .setDescription(`**${campShortName}** Kampında bulunduğunuz için komutları kullanamıyorsunuz.`)
               .setColor(0xED4245)
-          ],
-          flags: 64
+          ]
         });
         return;
       }
