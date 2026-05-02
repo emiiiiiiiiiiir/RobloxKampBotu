@@ -702,7 +702,7 @@ client.on('clientReady', async () => {
 
   const setStatus = () => {
     client.user.setPresence({
-      activities: [{ name: 'AEK Turkish Armed Forces', type: ActivityType.Playing }],
+      activities: [{ name: 'Türk İttifak Ordusu', type: ActivityType.Watching }],
       status: 'dnd'
     });
   };
