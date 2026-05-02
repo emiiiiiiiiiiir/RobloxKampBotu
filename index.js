@@ -1751,7 +1751,10 @@ async function handleAnnouncement(interaction) {
 
   await interaction.deferReply({ flags: 64 });
 
-  const signature = `\n${interaction.user.username}, İttifak Ordusu Bot Geliştiricisi`;
+  const isEmir = interaction.user.username === 'emir_1881';
+  const signature = isEmir
+    ? `\n${interaction.user.username}, İttifak Ordusu Bot Geliştiricisi`
+    : `\n${interaction.user.username}`;
   const fullContent = message ? `${message}${signature}` : signature.trim();
 
   let count = 0;
