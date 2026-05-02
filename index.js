@@ -640,6 +640,24 @@ const commands = [
     ),
 
   new SlashCommandBuilder()
+    .setName('branş-istek-sorgu')
+    .setDescription('Kişinin hangi branş gruplarına istek attığını listeler')
+    .addStringOption(option =>
+      option.setName('kişi')
+        .setDescription('Roblox kullanıcı adı')
+        .setRequired(true)
+    ),
+
+  new SlashCommandBuilder()
+    .setName('branş-rütbe-sorgu')
+    .setDescription('Kişinin hangi branşlarda hangi rütbede olduğunu listeler')
+    .addStringOption(option =>
+      option.setName('kişi')
+        .setDescription('Roblox kullanıcı adı')
+        .setRequired(true)
+    ),
+
+  new SlashCommandBuilder()
     .setName('branş-rütbe-değiştir')
     .setDescription('Branş grubunda rütbe değiştirir')
     .addStringOption(option =>
@@ -773,6 +791,12 @@ client.on('interactionCreate', async (interaction) => {
           break;
         case 'branş-istek':
           await handleBranchRequest(interaction);
+          break;
+        case 'branş-istek-sorgu':
+          await handleBranchRequestQuery(interaction);
+          break;
+        case 'branş-rütbe-sorgu':
+          await handleBranchRankQuery(interaction);
           break;
         case 'branş-rütbe-değiştir':
           await handleBranchRankChange(interaction);
@@ -1458,6 +1482,94 @@ async function handleBranchKick(interaction) {
   } else {
     await interaction.editReply({ embeds: [createErrorEmbed('Kullanıcı herhangi bir branş grubunda bulunamadı veya yetkiniz yetersiz.')] });
   }
+}
+
+async function handleBranchRequestQuery(interaction) {
+  const hasAdminRole = config.adminRoleIds.some(idStr => {
+    const ids = idStr.split(',').map(s => s.trim());
+    return ids.some(id => interaction.member.roles.cache.has(id));
+  });
+
+  if (!hasAdminRole) {
+    return interaction.reply({ embeds: [createErrorEmbed('Bu komutu kullanma yetkiniz yok!')], ephemeral: true });
+  }
+
+  await interaction.deferReply();
+
+  const robloxNick = interaction.options.getString('kişi');
+  const userId = await robloxAPI.getUserIdByUsername(robloxNick);
+
+  if (!userId) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Kullanıcı bulunamadı!')] });
+  }
+
+  const pendingBranches = [];
+
+  for (const [branchName, groupId] of Object.entries(config.branchGroups)) {
+    try {
+      const requests = await robloxAPI.getJoinRequests(groupId, ROBLOX_COOKIE);
+      if (requests && requests.some(r => r.requester?.userId === userId)) {
+        pendingBranches.push(branchName);
+      }
+    } catch (e) {}
+  }
+
+  const embed = new EmbedBuilder()
+    .setTitle('Branş İstek Sorgu')
+    .setDescription(`**${robloxNick}** adlı kullanıcının bekleyen branş istekleri:`)
+    .addFields({
+      name: 'Bekleyen İstekler',
+      value: pendingBranches.length > 0 ? pendingBranches.map(b => `• ${b}`).join('\n') : 'Hiçbir branşa istek atılmamış.',
+      inline: false
+    })
+    .setColor(pendingBranches.length > 0 ? 0x5865F2 : 0xED4245)
+    .setFooter({ text: `Roblox ID: ${userId}` });
+
+  await interaction.editReply({ embeds: [embed] });
+}
+
+async function handleBranchRankQuery(interaction) {
+  const hasAdminRole = config.adminRoleIds.some(idStr => {
+    const ids = idStr.split(',').map(s => s.trim());
+    return ids.some(id => interaction.member.roles.cache.has(id));
+  });
+
+  if (!hasAdminRole) {
+    return interaction.reply({ embeds: [createErrorEmbed('Bu komutu kullanma yetkiniz yok!')], ephemeral: true });
+  }
+
+  await interaction.deferReply();
+
+  const robloxNick = interaction.options.getString('kişi');
+  const userId = await robloxAPI.getUserIdByUsername(robloxNick);
+
+  if (!userId) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Kullanıcı bulunamadı!')] });
+  }
+
+  const branchRanks = [];
+
+  for (const [branchName, groupId] of Object.entries(config.branchGroups)) {
+    try {
+      const rank = await robloxAPI.getUserRankInGroup(userId, groupId);
+      if (rank) {
+        branchRanks.push({ branch: branchName, rank: rank.name });
+      }
+    } catch (e) {}
+  }
+
+  const embed = new EmbedBuilder()
+    .setTitle('Branş Rütbe Sorgu')
+    .setDescription(`**${robloxNick}** adlı kullanıcının branşlardaki rütbeleri:`)
+    .addFields({
+      name: 'Branşlar',
+      value: branchRanks.length > 0 ? branchRanks.map(b => `• **${b.branch}** — ${b.rank}`).join('\n') : 'Hiçbir branşta üye değil.',
+      inline: false
+    })
+    .setColor(branchRanks.length > 0 ? 0x57F287 : 0xED4245)
+    .setFooter({ text: `Roblox ID: ${userId}` });
+
+  await interaction.editReply({ embeds: [embed] });
 }
 
 async function handleBranchRequest(interaction) {
