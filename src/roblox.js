@@ -218,13 +218,28 @@ class RobloxAPI {
   }
 
   // Kullanıcının belirli bir gamepasse sahip olup olmadığını kontrol et
-  async checkGamePassOwnership(userId, gamePassId) {
+  async checkGamePassOwnership(userId, gamePassId, cookie) {
     try {
+      const headers = {};
+      if (cookie) headers['Cookie'] = `.ROBLOSECURITY=${cookie}`;
+
       const response = await axios.get(
-        `https://inventory.roblox.com/v1/users/${userId}/items/GamePass/${gamePassId}`
+        `https://inventory.roblox.com/v1/users/${userId}/items/GamePass/${gamePassId}`,
+        { headers }
       );
       return response.data.data && response.data.data.length > 0;
     } catch (error) {
+      // Envanter gizliyse veya erişim reddedildiyse Cloud API ile dene
+      try {
+        const apiKey = process.env.ROBLOX_API_KEY;
+        if (apiKey) {
+          const cloudResponse = await axios.get(
+            `https://apis.roblox.com/cloud/v2/users/${userId}/inventory-items?filter=gamePassIds=${gamePassId}`,
+            { headers: { 'x-api-key': apiKey } }
+          );
+          return cloudResponse.data.inventoryItems && cloudResponse.data.inventoryItems.length > 0;
+        }
+      } catch (e) {}
       return false;
     }
   }

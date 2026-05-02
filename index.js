@@ -1916,7 +1916,7 @@ async function handleGamePassQuery(interaction) {
   const notOwned = [];
 
   for (const gp of gamePasses) {
-    const owns = await robloxAPI.checkGamePassOwnership(userId, gp.id);
+    const owns = await robloxAPI.checkGamePassOwnership(userId, gp.id, ROBLOX_COOKIE);
     if (owns) {
       owned.push(gp.name);
     } else {
