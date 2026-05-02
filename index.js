@@ -1752,23 +1752,36 @@ async function handleAnnouncement(interaction) {
   await interaction.deferReply({ flags: 64 });
 
   const isEmir = interaction.user.username === 'emir_1881';
-  const signature = isEmir
-    ? `\n${interaction.user.username}, İttifak Ordusu Bot Geliştiricisi`
-    : `\n${interaction.user.username}`;
+  const signatureText = isEmir
+    ? `${interaction.user.username}, İttifak Ordusu Bot Geliştiricisi`
+    : interaction.user.username;
+  const signature = `\n-# ${signatureText}`;
   const fullContent = message ? `${message}${signature}` : signature.trim();
 
-  let count = 0;
+  const sentGuilds = [];
+
   client.guilds.cache.forEach(guild => {
     const channel = guild.channels.cache.find(c => c.name.toLowerCase() === channelName.toLowerCase() && c.isTextBased());
     if (channel) {
       const payload = { content: fullContent };
       if (attachment) payload.files = [attachment.url];
       channel.send(payload).catch(() => {});
-      count++;
+      sentGuilds.push(guild.name);
     }
   });
 
-  await interaction.editReply({ content: `Duyuru ${count} sunucuya gönderildi.` });
+  const listText = sentGuilds.length > 0
+    ? sentGuilds.map(name => `• ${name}`).join('\n')
+    : 'Hiçbir sunucuda uygun kanal bulunamadı.';
+
+  await interaction.editReply({
+    embeds: [
+      new EmbedBuilder()
+        .setTitle('Duyuru Gönderildi')
+        .setDescription(`**${sentGuilds.length} sunucuya gönderildi:**\n\n${listText}`)
+        .setColor(0x57F287)
+    ]
+  });
 }
 
 async function handleTicketSetup(interaction) {
