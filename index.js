@@ -560,14 +560,14 @@ const commands = [
     .setName('duyuru')
     .setDescription('Botun bulunduğu tüm sunuculara duyuru yapar')
     .addStringOption(option =>
-      option.setName('mesaj')
-        .setDescription('Duyuru mesajı')
-        .setRequired(true)
-    )
-    .addStringOption(option =>
       option.setName('kanal_adi')
         .setDescription('Duyurunun gönderileceği kanal adı (örn: duyurular, genel)')
         .setRequired(true)
+    )
+    .addStringOption(option =>
+      option.setName('mesaj')
+        .setDescription('Duyuru mesajı (opsiyonel)')
+        .setRequired(false)
     )
     .addAttachmentOption(option =>
       option.setName('görsel')
@@ -1745,17 +1745,21 @@ async function handleAnnouncement(interaction) {
   const channelName = interaction.options.getString('kanal_adi');
   const attachment = interaction.options.getAttachment('görsel');
 
+  if (!message && !attachment) {
+    return interaction.reply({ content: 'En az bir mesaj veya görsel girmelisiniz!', flags: 64 });
+  }
+
   await interaction.deferReply({ flags: 64 });
-  
+
   let count = 0;
   client.guilds.cache.forEach(guild => {
     const channel = guild.channels.cache.find(c => c.name.toLowerCase() === channelName.toLowerCase() && c.isTextBased());
     if (channel) {
       const embed = new EmbedBuilder()
         .setTitle('AEK - Duyuru')
-        .setDescription(message)
         .setColor(0x2B2D31)
         .setTimestamp();
+      if (message) embed.setDescription(message);
       if (attachment) embed.setImage(attachment.url);
       channel.send({ embeds: [embed] }).catch(() => {});
       count++;
