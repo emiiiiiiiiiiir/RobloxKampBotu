@@ -204,6 +204,31 @@ class RobloxAPI {
     }
   }
 
+  // Oyunun tüm gamepasslerini getir
+  async getGamePasses(universeId) {
+    try {
+      const response = await axios.get(
+        `${this.gamesURL}/v1/games/${universeId}/game-passes?sortOrder=Asc&limit=100`
+      );
+      return response.data.data || [];
+    } catch (error) {
+      console.error('Gamepass listesi alınırken hata:', error.message);
+      return [];
+    }
+  }
+
+  // Kullanıcının belirli bir gamepasse sahip olup olmadığını kontrol et
+  async checkGamePassOwnership(userId, gamePassId) {
+    try {
+      const response = await axios.get(
+        `https://inventory.roblox.com/v1/users/${userId}/items/GamePass/${gamePassId}`
+      );
+      return response.data.data && response.data.data.length > 0;
+    } catch (error) {
+      return false;
+    }
+  }
+
   // Kullanıcı bilgilerini al
   async getUserInfo(userId) {
     try {

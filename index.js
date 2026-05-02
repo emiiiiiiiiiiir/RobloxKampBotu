@@ -566,6 +566,15 @@ const commands = [
     ),
 
   new SlashCommandBuilder()
+    .setName('gamepass-sorgu')
+    .setDescription('Kişinin oyundaki hangi gamepasslere sahip olduğunu listeler')
+    .addStringOption(option =>
+      option.setName('kişi')
+        .setDescription('Roblox kullanıcı adı')
+        .setRequired(true)
+    ),
+
+  new SlashCommandBuilder()
     .setName('duyuru')
     .setDescription('Botun bulunduğu tüm sunuculara duyuru yapar')
     .addStringOption(option =>
@@ -824,6 +833,9 @@ client.on('interactionCreate', async (interaction) => {
           break;
         case 'oyun-yasak-sorgu':
           await handleGameBanQuery(interaction);
+          break;
+        case 'gamepass-sorgu':
+          await handleGamePassQuery(interaction);
           break;
         case 'duyuru':
           await handleAnnouncement(interaction);
@@ -1869,6 +1881,68 @@ async function handleGameUnban(interaction) {
   } catch (error) {
     await interaction.editReply({ embeds: [createErrorEmbed(`Yasak kaldırılamadı! ${error.response?.data?.errors?.[0]?.message || error.message}`)] });
   }
+}
+
+async function handleGamePassQuery(interaction) {
+  const hasAdminRole = config.adminRoleIds.some(idStr => {
+    const ids = idStr.split(',').map(s => s.trim());
+    return ids.some(id => interaction.member.roles.cache.has(id));
+  });
+
+  if (!hasAdminRole) {
+    return interaction.reply({ embeds: [createErrorEmbed('Bu komutu kullanma yetkiniz yok!')], ephemeral: true });
+  }
+
+  await interaction.deferReply();
+
+  const robloxNick = interaction.options.getString('kişi');
+
+  const userId = await robloxAPI.getUserIdByUsername(robloxNick);
+  if (!userId) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Kullanıcı bulunamadı!')] });
+  }
+
+  const universeId = await robloxAPI.getUniverseId(config.gameId);
+  if (!universeId) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Oyun bulunamadı! gameId\'yi kontrol edin.')] });
+  }
+
+  const gamePasses = await robloxAPI.getGamePasses(universeId);
+  if (!gamePasses || gamePasses.length === 0) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Oyuna ait gamepass bulunamadı.')] });
+  }
+
+  const owned = [];
+  const notOwned = [];
+
+  for (const gp of gamePasses) {
+    const owns = await robloxAPI.checkGamePassOwnership(userId, gp.id);
+    if (owns) {
+      owned.push(gp.name);
+    } else {
+      notOwned.push(gp.name);
+    }
+  }
+
+  const embed = new EmbedBuilder()
+    .setTitle('Gamepass Sorgu')
+    .setDescription(`**${robloxNick}** adlı kullanıcının gamepass durumu:`)
+    .addFields(
+      {
+        name: 'Sahip Olduğu',
+        value: owned.length > 0 ? owned.map(n => `• ${n}`).join('\n') : 'Yok',
+        inline: true
+      },
+      {
+        name: 'Sahip Olmadığı',
+        value: notOwned.length > 0 ? notOwned.map(n => `• ${n}`).join('\n') : 'Yok',
+        inline: true
+      }
+    )
+    .setColor(owned.length > 0 ? 0x57F287 : 0xED4245)
+    .setFooter({ text: `Roblox ID: ${userId}` });
+
+  await interaction.editReply({ embeds: [embed] });
 }
 
 async function handleGameBanQuery(interaction) {
