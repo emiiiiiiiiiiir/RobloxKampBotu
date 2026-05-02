@@ -557,6 +557,15 @@ const commands = [
     ),
 
   new SlashCommandBuilder()
+    .setName('oyun-yasak-sorgu')
+    .setDescription('Roblox kullanıcısının oyun yasak bilgilerini gösterir')
+    .addStringOption(option =>
+      option.setName('kişi')
+        .setDescription('Sorgulanacak kişinin Roblox kullanıcı adı')
+        .setRequired(true)
+    ),
+
+  new SlashCommandBuilder()
     .setName('duyuru')
     .setDescription('Botun bulunduğu tüm sunuculara duyuru yapar')
     .addStringOption(option =>
@@ -812,6 +821,9 @@ client.on('interactionCreate', async (interaction) => {
           break;
         case 'oyun-yasak-kaldır':
           await handleGameUnban(interaction);
+          break;
+        case 'oyun-yasak-sorgu':
+          await handleGameBanQuery(interaction);
           break;
         case 'duyuru':
           await handleAnnouncement(interaction);
@@ -1732,12 +1744,170 @@ async function handleDemote(interaction) {
   }
 }
 
+const GAME_BANS_FILE = './data/game_bans.json';
+
+function loadGameBans() {
+  try {
+    if (fs.existsSync(GAME_BANS_FILE)) {
+      const data = fs.readFileSync(GAME_BANS_FILE, 'utf8');
+      if (data && data.trim() !== '') return JSON.parse(data);
+    }
+  } catch (e) {}
+  return {};
+}
+
+function saveGameBans(bans) {
+  try {
+    fs.writeFileSync(GAME_BANS_FILE, JSON.stringify(bans, null, 2), 'utf8');
+  } catch (e) {
+    console.error('Oyun ban kaydı hatası:', e.message);
+  }
+}
+
 async function handleGameBan(interaction) {
-  await interaction.reply({ content: 'Oyun yasaklama API\'si entegrasyonu bekleniyor.', flags: 64 });
+  const hasAdminRole = config.adminRoleIds.some(idStr => {
+    const ids = idStr.split(',').map(s => s.trim());
+    return ids.some(id => interaction.member.roles.cache.has(id));
+  });
+
+  if (!hasAdminRole) {
+    return interaction.reply({ embeds: [createErrorEmbed('Bu komutu kullanma yetkiniz yok!')], ephemeral: true });
+  }
+
+  await interaction.deferReply();
+
+  const robloxNick = interaction.options.getString('kişi');
+  const reason = interaction.options.getString('sebep');
+
+  const userId = await robloxAPI.getUserIdByUsername(robloxNick);
+  if (!userId) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Kullanıcı bulunamadı!')] });
+  }
+
+  const universeId = await robloxAPI.getUniverseId(config.gameId);
+  if (!universeId) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Oyun bulunamadı! gameId\'yi kontrol edin.')] });
+  }
+
+  const result = await robloxAPI.banUserFromGame(universeId, userId, reason);
+
+  if (result && result.success) {
+    const bans = loadGameBans();
+    bans[robloxNick.toLowerCase()] = {
+      robloxUsername: robloxNick,
+      robloxId: userId,
+      reason: reason,
+      bannedBy: interaction.user.username,
+      bannedAt: Date.now()
+    };
+    saveGameBans(bans);
+
+    const embed = new EmbedBuilder()
+      .setDescription(`İşlem başarıyla tamamlandı\n\n**${robloxNick}** adlı kullanıcı oyundan yasaklandı.\n\n**Sebep**\n${reason}`)
+      .setColor(0x57F287);
+    await interaction.editReply({ embeds: [embed] });
+  } else {
+    const errMsg = result?.error || 'Bilinmeyen hata';
+    await interaction.editReply({ embeds: [createErrorEmbed(`Yasaklama başarısız! ${errMsg}`)] });
+  }
 }
 
 async function handleGameUnban(interaction) {
-  await interaction.reply({ content: 'Oyun yasak kaldırma API\'si entegrasyonu bekleniyor.', flags: 64 });
+  const hasAdminRole = config.adminRoleIds.some(idStr => {
+    const ids = idStr.split(',').map(s => s.trim());
+    return ids.some(id => interaction.member.roles.cache.has(id));
+  });
+
+  if (!hasAdminRole) {
+    return interaction.reply({ embeds: [createErrorEmbed('Bu komutu kullanma yetkiniz yok!')], ephemeral: true });
+  }
+
+  await interaction.deferReply();
+
+  const robloxNick = interaction.options.getString('kişi');
+  const userId = await robloxAPI.getUserIdByUsername(robloxNick);
+  if (!userId) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Kullanıcı bulunamadı!')] });
+  }
+
+  const universeId = await robloxAPI.getUniverseId(config.gameId);
+  if (!universeId) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Oyun bulunamadı! gameId\'yi kontrol edin.')] });
+  }
+
+  try {
+    const apiKey = process.env.ROBLOX_API_KEY;
+    const cookie = process.env.ROBLOX_COOKIE;
+    let success = false;
+
+    if (apiKey) {
+      await axios.post(
+        `https://apis.roblox.com/cloud/v2/universes/${universeId}/user-restrictions/${userId}:restrict`,
+        { gameJoinRestriction: { active: false } },
+        { headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' } }
+      );
+      success = true;
+    } else if (cookie) {
+      const csrfToken = await robloxAPI.getCsrfToken(cookie);
+      await axios.delete(
+        `https://apis.roblox.com/game-auth/v1/games/${universeId}/bans/user/${userId}`,
+        { headers: { 'Cookie': `.ROBLOSECURITY=${cookie}`, 'X-CSRF-TOKEN': csrfToken } }
+      );
+      success = true;
+    }
+
+    if (success) {
+      const bans = loadGameBans();
+      delete bans[robloxNick.toLowerCase()];
+      saveGameBans(bans);
+
+      const embed = new EmbedBuilder()
+        .setDescription(`İşlem başarıyla tamamlandı\n\n**${robloxNick}** adlı kullanıcının oyun yasağı kaldırıldı.`)
+        .setColor(0x57F287);
+      await interaction.editReply({ embeds: [embed] });
+    }
+  } catch (error) {
+    await interaction.editReply({ embeds: [createErrorEmbed(`Yasak kaldırılamadı! ${error.response?.data?.errors?.[0]?.message || error.message}`)] });
+  }
+}
+
+async function handleGameBanQuery(interaction) {
+  const hasAdminRole = config.adminRoleIds.some(idStr => {
+    const ids = idStr.split(',').map(s => s.trim());
+    return ids.some(id => interaction.member.roles.cache.has(id));
+  });
+
+  if (!hasAdminRole) {
+    return interaction.reply({ embeds: [createErrorEmbed('Bu komutu kullanma yetkiniz yok!')], ephemeral: true });
+  }
+
+  await interaction.deferReply();
+
+  const robloxNick = interaction.options.getString('kişi');
+  const bans = loadGameBans();
+  const ban = bans[robloxNick.toLowerCase()];
+
+  if (!ban) {
+    return interaction.editReply({
+      embeds: [new EmbedBuilder()
+        .setDescription(`**${robloxNick}** adlı kullanıcının oyun yasağı kaydı bulunamadı.`)
+        .setColor(0x57F287)]
+    });
+  }
+
+  const embed = new EmbedBuilder()
+    .setTitle('Oyun Yasak Sorgu')
+    .addFields(
+      { name: 'Kullanıcı', value: ban.robloxUsername, inline: true },
+      { name: 'Roblox ID', value: String(ban.robloxId), inline: true },
+      { name: '\u200b', value: '\u200b', inline: true },
+      { name: 'Sebep', value: ban.reason, inline: false },
+      { name: 'Yasaklayan', value: ban.bannedBy, inline: true },
+      { name: 'Yasak Tarihi', value: `<t:${Math.floor(ban.bannedAt / 1000)}:F>`, inline: true }
+    )
+    .setColor(0xED4245);
+
+  await interaction.editReply({ embeds: [embed] });
 }
 
 async function handleAnnouncement(interaction) {
