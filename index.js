@@ -1751,12 +1751,14 @@ async function handleAnnouncement(interaction) {
 
   await interaction.deferReply({ flags: 64 });
 
+  const signature = `\n${interaction.user.username}, İttifak Ordusu Bot Geliştiricisi`;
+  const fullContent = message ? `${message}${signature}` : signature.trim();
+
   let count = 0;
   client.guilds.cache.forEach(guild => {
     const channel = guild.channels.cache.find(c => c.name.toLowerCase() === channelName.toLowerCase() && c.isTextBased());
     if (channel) {
-      const payload = {};
-      if (message) payload.content = message;
+      const payload = { content: fullContent };
       if (attachment) payload.files = [attachment.url];
       channel.send(payload).catch(() => {});
       count++;
