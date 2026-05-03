@@ -2051,6 +2051,9 @@ async function handlePing(interaction) {
 }
 
 async function handleAnnouncement(interaction) {
+  const ANNOUNCEMENT_GUILD_ID = '1500506349518323842';
+  const ANNOUNCEMENT_ROLE_IDS = ['1500513256907739268', '1500512374615052375', '1500512537089806499'];
+
   const message = interaction.options.getString('mesaj');
   const channelName = interaction.options.getString('kanal_adi');
   const attachment = interaction.options.getAttachment('görsel');
@@ -2059,12 +2062,27 @@ async function handleAnnouncement(interaction) {
     return interaction.reply({ embeds: [createErrorEmbed('Mesaj veya görsel en az birini girmelisiniz!')], ephemeral: true });
   }
 
+  // Yetki kontrolü: Sadece belirtilen sunucudaki belirtilen rollere sahip kişiler kullanabilir
+  let memberInTargetGuild = null;
+  try {
+    const targetGuild = await client.guilds.fetch(ANNOUNCEMENT_GUILD_ID);
+    memberInTargetGuild = await targetGuild.members.fetch(interaction.user.id);
+  } catch (e) {}
+
+  if (!memberInTargetGuild) {
+    return interaction.reply({ embeds: [createErrorEmbed('Bu komutu kullanmak için gerekli sunucuda bulunmuyor veya yetkiniz yok!')], flags: 64 });
+  }
+
+  const userRoleId = ANNOUNCEMENT_ROLE_IDS.find(id => memberInTargetGuild.roles.cache.has(id));
+  if (!userRoleId) {
+    return interaction.reply({ embeds: [createErrorEmbed('Bu komutu kullanma yetkiniz yok!')], flags: 64 });
+  }
+
   await interaction.deferReply({ flags: 64 });
 
-  const isEmir = interaction.user.username === 'emir_1881';
-  const signatureText = isEmir
-    ? `${interaction.user.username}, İttifak Ordusu Bot Geliştiricisi`
-    : interaction.user.username;
+  // İmza: kullanıcı adı + sahip olduğu rolün adı
+  const roleName = memberInTargetGuild.roles.cache.get(userRoleId)?.name || '';
+  const signatureText = `${interaction.user.username}, ${roleName}`;
   const signature = `\n-# ${signatureText}`;
   const fullContent = message ? `${message}${signature}` : signature.trim();
 
