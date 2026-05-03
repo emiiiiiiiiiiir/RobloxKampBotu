@@ -747,7 +747,7 @@ client.on('clientReady', async () => {
 
   const setStatus = () => {
     client.user.setPresence({
-      activities: [{ name: 'Türk İttifak Ordusu', type: ActivityType.Watching }],
+      activities: [{ name: 'Imperial Forces', type: ActivityType.Watching }],
       status: 'dnd'
     });
   };
