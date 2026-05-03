@@ -729,6 +729,9 @@ const commands = [
         .setDescription('Değişim sebebi')
         .setRequired(true)
     ),
+  new SlashCommandBuilder()
+    .setName('ping')
+    .setDescription('Botun gecikme süresini gösterir'),
 ].map(command => command.toJSON());
 
 console.log('=== Discord Bot Başlatılıyor ===\n');
@@ -875,6 +878,9 @@ client.on('interactionCreate', async (interaction) => {
           break;
         case 'ticket-setup':
           await handleTicketSetup(interaction);
+          break;
+        case 'ping':
+          await handlePing(interaction);
           break;
       }
     } catch (error) {
@@ -2025,6 +2031,23 @@ async function handleGameBanQuery(interaction) {
     .setColor(0xED4245);
 
   await interaction.editReply({ embeds: [embed] });
+}
+
+async function handlePing(interaction) {
+  const sent = await interaction.reply({ content: 'Ölçülüyor...', fetchReply: true });
+  const latency = sent.createdTimestamp - interaction.createdTimestamp;
+  const wsLatency = client.ws.ping;
+
+  const embed = new EmbedBuilder()
+    .setTitle('🏓 Pong!')
+    .addFields(
+      { name: 'Bot Gecikmesi', value: `\`${latency}ms\``, inline: true },
+      { name: 'WebSocket', value: `\`${wsLatency}ms\``, inline: true }
+    )
+    .setColor(latency < 100 ? 0x57F287 : latency < 300 ? 0xFEE75C : 0xED4245)
+    .setTimestamp();
+
+  await interaction.editReply({ content: '', embeds: [embed] });
 }
 
 async function handleAnnouncement(interaction) {
