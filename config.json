@@ -4,7 +4,7 @@
   "gameId": "",
   "adminRoleIds": [", "],
   "allowedRanks": [],
-  "maxRankCanAssign": ,
+  "maxRankCanAssign": [],
   "branchGroups": {
     "DKK": "",
     "KKK": "",
@@ -13,7 +13,7 @@
     "AS.İZ": "820735175",
     "HKK": "774338962"
   },
-  "branchManagerRanks": [255, 254, 253, 115],
+  "branchManagerRanks": [],
   "webhookUrl": "",
   "branchWebhookUrl": "
   ",
