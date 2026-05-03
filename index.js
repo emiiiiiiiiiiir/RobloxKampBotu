@@ -543,6 +543,10 @@ const commands = [
   new SlashCommandBuilder()
     .setName('aktiflik-sorgu')
     .setDescription('Grup oyununun aktifliğini sorgular'),
+
+  new SlashCommandBuilder()
+    .setName('ittifak-aktiflik')
+    .setDescription('AEK ve ATF oyunlarının aktifliğini birlikte gösterir'),
   
   new SlashCommandBuilder()
     .setName('yenile')
@@ -814,6 +818,9 @@ client.on('interactionCreate', async (interaction) => {
           break;
         case 'aktiflik-sorgu':
           await handleActivityQuery(interaction);
+          break;
+        case 'ittifak-aktiflik':
+          await handleIttifakActivity(interaction);
           break;
         case 'yenile':
           await handleYenile(interaction);
@@ -2490,6 +2497,24 @@ async function handleActivityQuery(interaction) {
     .setDescription(`**${activity.name}** oyununun mevcut aktifliği: **${activity.playing}** oyuncu`)
     .setColor(0x57F287);
   
+  await interaction.editReply({ embeds: [embed] });
+}
+
+async function handleIttifakActivity(interaction) {
+  await interaction.deferReply();
+
+  const [aekActivity, atfActivity] = await Promise.all([
+    robloxAPI.getGameActivity(config.gameId),
+    robloxAPI.getGameActivity(config.atf.gameId)
+  ]);
+
+  const aekText = aekActivity ? `${aekActivity.playing}` : 'Alınamadı';
+  const atfText = atfActivity ? `${atfActivity.playing}` : 'Alınamadı';
+
+  const embed = new EmbedBuilder()
+    .setDescription(`**AEK oyununun aktifliği: ${aekText}**\n**ATF oyununun aktifliği: ${atfText}**`)
+    .setColor(0x2B2D31);
+
   await interaction.editReply({ embeds: [embed] });
 }
 
