@@ -548,11 +548,11 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName('ittifak-aktiflik')
-    .setDescription('AEK ve ATF oyunlarının aktifliğini birlikte gösterir'),
+    .setDescription('TKT ve ATF oyunlarının aktifliğini birlikte gösterir'),
 
   new SlashCommandBuilder()
     .setName('ittifak-branş-aktiflik')
-    .setDescription('AEK ve ATF branşlarının aktifliğini ayrı ayrı gösterir (Sadece İttifak Yetkilileri)'),
+    .setDescription('TKT ve ATF branşlarının aktifliğini ayrı ayrı gösterir (Sadece İttifak Yetkilileri)'),
   
   new SlashCommandBuilder()
     .setName('yenile')
@@ -1211,8 +1211,8 @@ async function handleRobloxLink(interaction) {
 
 async function handleRankQuery(interaction) {
   const guildName = interaction.guild.name;
-  if (!guildName.includes('AEK') && !guildName.includes('ATF')) {
-    return interaction.reply({ content: 'HATA: Bu komut sadece AEK veya ATF sunucularında kullanılabilir.', ephemeral: true });
+  if (!guildName.includes('TKT') && !guildName.includes('ATF')) {
+    return interaction.reply({ content: 'HATA: Bu komut sadece TKT veya ATF sunucularında kullanılabilir.', ephemeral: true });
   }
   
   await interaction.deferReply();
@@ -1251,8 +1251,8 @@ async function handleRankQuery(interaction) {
 
 async function handleRankChange(interaction) {
   const guildName = interaction.guild.name;
-  if (!guildName.includes('AEK') && !guildName.includes('ATF')) {
-    return interaction.reply({ content: 'HATA: Bu komut sadece AEK veya ATF sunucularında kullanılabilir.', ephemeral: true });
+  if (!guildName.includes('TKT') && !guildName.includes('ATF')) {
+    return interaction.reply({ content: 'HATA: Bu komut sadece TKT veya ATF sunucularında kullanılabilir.', ephemeral: true });
   }
   
   await interaction.deferReply();
@@ -1323,8 +1323,8 @@ async function handleRankChange(interaction) {
 
 async function handleRankPromotion(interaction) {
   const guildName = interaction.guild.name;
-  if (!guildName.includes('AEK') && !guildName.includes('ATF')) {
-    return interaction.reply({ content: 'HATA: Bu komut sadece AEK veya ATF sunucularında kullanılabilir.', ephemeral: true });
+  if (!guildName.includes('TKT') && !guildName.includes('ATF')) {
+    return interaction.reply({ content: 'HATA: Bu komut sadece TKT veya ATF sunucularında kullanılabilir.', ephemeral: true });
   }
   
   await interaction.deferReply();
@@ -1451,8 +1451,8 @@ async function checkBranchRankPermissions(discordUserId, branch, targetRank, gui
 
 async function handleBranchRankChange(interaction) {
   const guildName = interaction.guild.name;
-  if (!guildName.includes('AEK') && !guildName.includes('ATF')) {
-    return interaction.reply({ content: 'HATA: Bu komut sadece AEK veya ATF sunucularında kullanılabilir.', flags: 64 });
+  if (!guildName.includes('TKT') && !guildName.includes('ATF')) {
+    return interaction.reply({ content: 'HATA: Bu komut sadece TKT veya ATF sunucularında kullanılabilir.', flags: 64 });
   }
   await interaction.deferReply();
   if (!(await checkAccountSync(interaction))) return;
@@ -1502,7 +1502,7 @@ async function handleBranchRankChange(interaction) {
 
 async function handleBranchKick(interaction) {
   const guildName = interaction.guild.name;
-  if (!guildName.includes('AEK') && !guildName.includes('ATF')) return interaction.reply({ content: 'HATA: Bu komut sadece AEK veya ATF sunucularında kullanılabilir.', flags: 64 });
+  if (!guildName.includes('TKT') && !guildName.includes('ATF')) return interaction.reply({ content: 'HATA: Bu komut sadece TKT veya ATF sunucularında kullanılabilir.', flags: 64 });
   await interaction.deferReply();
   
   const targetNick = interaction.options.getString('kişi');
@@ -1728,8 +1728,8 @@ async function handleGroupList(interaction) {
 
 async function handleDemote(interaction) {
   const guildName = interaction.guild.name;
-  if (!guildName.includes('AEK') && !guildName.includes('ATF')) {
-    return interaction.reply({ content: 'HATA: Bu komut sadece AEK veya ATF sunucularında kullanılabilir.', ephemeral: true });
+  if (!guildName.includes('TKT') && !guildName.includes('ATF')) {
+    return interaction.reply({ content: 'HATA: Bu komut sadece TKT veya ATF sunucularında kullanılabilir.', ephemeral: true });
   }
 
   await interaction.deferReply();
@@ -2122,7 +2122,7 @@ async function handleTicketSetup(interaction) {
     return interaction.reply({ content: 'Bu komutu kullanma yetkiniz yok!', flags: 64 });
   }
 
-  const imageUrl = config.ticketImageUrl || 'https://cdn.discordapp.com/attachments/1119330101861781534/1119330102146990141/AEK_Logo.png';
+  const imageUrl = config.ticketImageUrl || '';
   
   const embed = new EmbedBuilder()
     .setTitle('Turkish Armed Forces')
@@ -2365,7 +2365,7 @@ async function handleBan(interaction) {
     const guilds = client.guilds.cache;
 
     try {
-      await user.send(`**${interaction.user.username}** tarafından tüm AEK sunucularına yasaklandınız.\nSebep: ${reason}`);
+      await user.send(`**${interaction.user.username}** tarafından tüm TKT sunucularına yasaklandınız.\nSebep: ${reason}`);
     } catch (dmError) {
       console.warn(`DM gönderilemedi (${discordUserId}): ${dmError.message}`);
     }
@@ -2440,7 +2440,7 @@ async function handleUnban(interaction) {
       }
     }
     
-    let description = `İşlem başarıyla tamamlandı\n\n<@${discordUserId}> Kişisinin AEK sunucularından yasaklamaları başarıyla kaldırıldı.\n\n**Sebep**\n${reason}\n\n`;
+    let description = `İşlem başarıyla tamamlandı\n\n<@${discordUserId}> Kişisinin TKT sunucularından yasaklamaları başarıyla kaldırıldı.\n\n**Sebep**\n${reason}\n\n`;
     
     if (successGuilds.length > 0) {
       description += `**Yasağın kaldırıldığı sunucular:**\n${successGuilds.map(name => `• | ${name}`).join('\n')}\n\n`;
@@ -2594,14 +2594,14 @@ async function handleIttifakBransAktiflik(interaction) {
 
   const embed = new EmbedBuilder()
     .setTitle('İTTİFAK BRANŞ AKTİFLİK RAPORU')
-    .setDescription('AEK ve ATF branşlarının anlık aktiflik verileri aşağıda ayrı ayrı listelenmiştir.')
+    .setDescription('TKT ve ATF branşlarının anlık aktiflik verileri aşağıda ayrı ayrı listelenmiştir.')
     .addFields(
-      { name: 'AEK — BRANŞLAR', value: buildRankText(aekData), inline: false },
+      { name: 'TKT — BRANŞLAR', value: buildRankText(aekData), inline: false },
       { name: '\u200b', value: '\u200b', inline: false },
       { name: 'ATF — BRANŞLAR', value: buildRankText(atfData), inline: false }
     )
     .setColor(0x2B2D31)
-    .setFooter({ text: `AEK Son Güncelleme: ${aekUpdate} | ATF Son Güncelleme: ${atfUpdate}` })
+    .setFooter({ text: `TKT Son Güncelleme: ${aekUpdate} | ATF Son Güncelleme: ${atfUpdate}` })
     .setTimestamp();
 
   await interaction.editReply({ embeds: [embed] });
@@ -2619,7 +2619,7 @@ async function handleIttifakActivity(interaction) {
   const atfText = atfActivity ? `${atfActivity.playing}` : 'Alınamadı';
 
   const embed = new EmbedBuilder()
-    .setDescription(`**AEK oyununun aktifliği: ${aekText}**\n**ATF oyununun aktifliği: ${atfText}**`)
+    .setDescription(`**TKT oyununun aktifliği: ${aekText}**\n**ATF oyununun aktifliği: ${atfText}**`)
     .setColor(0x2B2D31);
 
   await interaction.editReply({ embeds: [embed] });
@@ -2643,7 +2643,7 @@ if (typeof app === 'undefined') {
 
 app.post('/update-teams', (req, res) => {
   const { teams, secret } = req.body;
-  if (secret !== process.env.ROBLOX_API_KEY && secret !== 'AEK_SECRET_123') {
+  if (secret !== process.env.ROBLOX_API_KEY && secret !== 'TKT_SECRET_123') {
     return res.status(403).send('Unauthorized');
   }
   if (teams) {
@@ -2660,7 +2660,7 @@ app.post('/update-teams', (req, res) => {
 
 app.post('/update-teams-atf', (req, res) => {
   const { teams, secret } = req.body;
-  if (secret !== process.env.ROBLOX_API_KEY && secret !== 'AEK_SECRET_123') {
+  if (secret !== process.env.ROBLOX_API_KEY && secret !== 'TKT_SECRET_123') {
     return res.status(403).send('Unauthorized');
   }
   if (teams) {
