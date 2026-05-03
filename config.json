@@ -2,9 +2,9 @@
   "groupId": "279222901",
   "blacklistGroupIds": [13868386],
   "gameId": "",
-  "adminRoleIds": [""],
+  "adminRoleIds": [", "],
   "allowedRanks": [],
-  "maxRankCanAssign": 0,
+  "maxRankCanAssign": ,
   "branchGroups": {
     "DKK": "",
     "KKK": "",
@@ -13,12 +13,13 @@
     "AS.İZ": "820735175",
     "HKK": "774338962"
   },
-  "branchManagerRanks": [],
+  "branchManagerRanks": [255, 254, 253, 115],
   "webhookUrl": "",
-  "branchWebhookUrl": "",
+  "branchWebhookUrl": "
+  ",
   "ticketCategoryId": "",
   "ticketLogChannelId": "",
-  "supportRoleIds": [""],
+  "supportRoleIds": [", "],
   "ticketImageUrl": "",
   "autoVoiceChannelId": "1500511192098144337",
   "autoVoiceGuildId": "1499718044111605910",
@@ -31,7 +32,7 @@
       "DKK": "",
       "KKK": "",
       "JGK": "",
-      "AS.İZ": "",
+      "AS.İZ": "820735175",
       "HKK": ""
     }
   }
