@@ -45,12 +45,14 @@ function getGuildConfig(guild) {
     return {
       groupId: config.atf.groupId,
       gameId: config.atf.gameId,
+      adminRoleIds: config.atf.adminRoleIds || config.adminRoleIds,
       branchGroups: config.atf.branchGroups || {}
     };
   }
   return {
     groupId: config.groupId,
     gameId: config.gameId,
+    adminRoleIds: config.adminRoleIds,
     branchGroups: config.branchGroups || {}
   };
 }
@@ -1544,7 +1546,7 @@ async function handleBranchKick(interaction) {
 }
 
 async function handleBranchRequestQuery(interaction) {
-  const hasAdminRole = config.adminRoleIds.some(idStr => {
+  const hasAdminRole = getGuildConfig(interaction.guild).adminRoleIds.some(idStr => {
     const ids = idStr.split(',').map(s => s.trim());
     return ids.some(id => interaction.member.roles.cache.has(id));
   });
@@ -1589,7 +1591,7 @@ async function handleBranchRequestQuery(interaction) {
 }
 
 async function handleBranchRankQuery(interaction) {
-  const hasAdminRole = config.adminRoleIds.some(idStr => {
+  const hasAdminRole = getGuildConfig(interaction.guild).adminRoleIds.some(idStr => {
     const ids = idStr.split(',').map(s => s.trim());
     return ids.some(id => interaction.member.roles.cache.has(id));
   });
@@ -1811,7 +1813,7 @@ function saveGameBans(bans) {
 }
 
 async function handleGameBan(interaction) {
-  const hasAdminRole = config.adminRoleIds.some(idStr => {
+  const hasAdminRole = getGuildConfig(interaction.guild).adminRoleIds.some(idStr => {
     const ids = idStr.split(',').map(s => s.trim());
     return ids.some(id => interaction.member.roles.cache.has(id));
   });
@@ -1859,7 +1861,7 @@ async function handleGameBan(interaction) {
 }
 
 async function handleGameUnban(interaction) {
-  const hasAdminRole = config.adminRoleIds.some(idStr => {
+  const hasAdminRole = getGuildConfig(interaction.guild).adminRoleIds.some(idStr => {
     const ids = idStr.split(',').map(s => s.trim());
     return ids.some(id => interaction.member.roles.cache.has(id));
   });
@@ -1918,7 +1920,7 @@ async function handleGameUnban(interaction) {
 }
 
 async function handleGamePassQuery(interaction) {
-  const hasAdminRole = config.adminRoleIds.some(idStr => {
+  const hasAdminRole = getGuildConfig(interaction.guild).adminRoleIds.some(idStr => {
     const ids = idStr.split(',').map(s => s.trim());
     return ids.some(id => interaction.member.roles.cache.has(id));
   });
@@ -1980,7 +1982,7 @@ async function handleGamePassQuery(interaction) {
 }
 
 async function handleGameBanQuery(interaction) {
-  const hasAdminRole = config.adminRoleIds.some(idStr => {
+  const hasAdminRole = getGuildConfig(interaction.guild).adminRoleIds.some(idStr => {
     const ids = idStr.split(',').map(s => s.trim());
     return ids.some(id => interaction.member.roles.cache.has(id));
   });
@@ -2063,7 +2065,7 @@ async function handleAnnouncement(interaction) {
 }
 
 async function handleTicketSetup(interaction) {
-  const hasAdminRole = config.adminRoleIds.some(idStr => {
+  const hasAdminRole = getGuildConfig(interaction.guild).adminRoleIds.some(idStr => {
     const ids = idStr.split(',').map(s => s.trim());
     return ids.some(id => interaction.member.roles.cache.has(id));
   });
@@ -2292,17 +2294,11 @@ async function handleTicketClaim(interaction) {
   }
 }
 
-async function handleBranchActivityQuery(interaction) {
-  await interaction.deferReply();
-  // Mevcut team_activity.json okuma mantığı
-  const embed = new EmbedBuilder().setTitle('Branş Aktifliği').setDescription('Aktiflik verileri yükleniyor...').setColor(0x2B2D31);
-  await interaction.editReply({ embeds: [embed] });
-}
 
 
 async function handleBan(interaction) {
   // Config'deki admin rollerini kontrol et (Virgüllü format desteğiyle)
-  const hasAdminRole = config.adminRoleIds.some(idStr => {
+  const hasAdminRole = getGuildConfig(interaction.guild).adminRoleIds.some(idStr => {
     const ids = idStr.split(',').map(s => s.trim());
     return ids.some(id => interaction.member.roles.cache.has(id));
   });
@@ -2366,7 +2362,7 @@ async function handleBan(interaction) {
 
 async function handleUnban(interaction) {
   // Config'deki admin rollerini kontrol et (Virgüllü format desteğiyle)
-  const hasAdminRole = config.adminRoleIds.some(idStr => {
+  const hasAdminRole = getGuildConfig(interaction.guild).adminRoleIds.some(idStr => {
     const ids = idStr.split(',').map(s => s.trim());
     return ids.some(id => interaction.member.roles.cache.has(id));
   });
@@ -2420,7 +2416,7 @@ async function handleUnban(interaction) {
 }
 
 async function handleBanQuery(interaction) {
-  const hasAdminRole = config.adminRoleIds.some(idStr => {
+  const hasAdminRole = getGuildConfig(interaction.guild).adminRoleIds.some(idStr => {
     const ids = idStr.split(',').map(s => s.trim());
     return ids.some(id => interaction.member.roles.cache.has(id));
   });
@@ -2560,7 +2556,8 @@ async function handleBranchActivityQuery(interaction) {
     }
   } catch (e) {}
 
-  const activity = await robloxAPI.getGameActivity(config.gameId);
+  const { gameId } = getGuildConfig(interaction.guild);
+  const activity = await robloxAPI.getGameActivity(gameId);
   
   if (!activity) {
     return interaction.editReply({ embeds: [createErrorEmbed('Oyun bilgisi alınamadı!')] });
