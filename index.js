@@ -732,6 +732,15 @@ const commands = [
   new SlashCommandBuilder()
     .setName('ping')
     .setDescription('Botun gecikme süresini gösterir'),
+
+  new SlashCommandBuilder()
+    .setName('ban-affı')
+    .setDescription('Sunucuda yasaklı olan herkesin yasağını kaldırır')
+    .addStringOption(option =>
+      option.setName('sebep')
+        .setDescription('Af sebebi')
+        .setRequired(false)
+    ),
 ].map(command => command.toJSON());
 
 console.log('=== Discord Bot Başlatılıyor ===\n');
@@ -881,6 +890,9 @@ client.on('interactionCreate', async (interaction) => {
           break;
         case 'ping':
           await handlePing(interaction);
+          break;
+        case 'ban-affı':
+          await handleBanAmnesty(interaction);
           break;
       }
     } catch (error) {
@@ -2029,6 +2041,62 @@ async function handleGameBanQuery(interaction) {
       { name: 'Yasak Tarihi', value: `<t:${Math.floor(ban.bannedAt / 1000)}:F>`, inline: true }
     )
     .setColor(0xED4245);
+
+  await interaction.editReply({ embeds: [embed] });
+}
+
+async function handleBanAmnesty(interaction) {
+  const hasAdminRole = getGuildConfig(interaction.guild).adminRoleIds.some(idStr => {
+    const ids = idStr.split(',').map(s => s.trim());
+    return ids.some(id => interaction.member.roles.cache.has(id));
+  });
+
+  if (!hasAdminRole) {
+    return interaction.reply({ embeds: [createErrorEmbed('Bu komutu kullanma yetkiniz yok!')], flags: 64 });
+  }
+
+  await interaction.deferReply();
+
+  const reason = interaction.options.getString('sebep') || 'Ban affı';
+  const guild = interaction.guild;
+
+  let banList;
+  try {
+    banList = await guild.bans.fetch();
+  } catch {
+    return interaction.editReply({ embeds: [createErrorEmbed('Yasak listesi alınamadı!')] });
+  }
+
+  if (banList.size === 0) {
+    return interaction.editReply({
+      embeds: [new EmbedBuilder()
+        .setDescription('Bu sunucuda yasaklı kullanıcı bulunmuyor.')
+        .setColor(0x57F287)]
+    });
+  }
+
+  let başarılı = 0;
+  let başarısız = 0;
+
+  for (const [userId] of banList) {
+    try {
+      await guild.members.unban(userId, reason);
+      başarılı++;
+    } catch {
+      başarısız++;
+    }
+  }
+
+  const embed = new EmbedBuilder()
+    .setTitle('Ban Affı Tamamlandı')
+    .addFields(
+      { name: 'Toplam Yasaklı', value: `\`${banList.size}\``, inline: true },
+      { name: 'Yasağı Kaldırılan', value: `\`${başarılı}\``, inline: true },
+      { name: 'Başarısız', value: `\`${başarısız}\``, inline: true },
+      { name: 'Sebep', value: reason, inline: false }
+    )
+    .setColor(0x57F287)
+    .setTimestamp();
 
   await interaction.editReply({ embeds: [embed] });
 }
