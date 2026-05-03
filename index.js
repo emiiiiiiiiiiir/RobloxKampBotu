@@ -44,11 +44,13 @@ function getGuildConfig(guild) {
   if (name.includes('ATF')) {
     return {
       groupId: config.atf.groupId,
+      gameId: config.atf.gameId,
       branchGroups: config.atf.branchGroups || {}
     };
   }
   return {
     groupId: config.groupId,
+    gameId: config.gameId,
     branchGroups: config.branchGroups || {}
   };
 }
@@ -2477,7 +2479,8 @@ async function handleBanQuery(interaction) {
 async function handleActivityQuery(interaction) {
   await interaction.deferReply();
   
-  const activity = await robloxAPI.getGameActivity(config.gameId);
+  const { gameId } = getGuildConfig(interaction.guild);
+  const activity = await robloxAPI.getGameActivity(gameId);
   
   if (!activity) {
     return interaction.editReply({ embeds: [createErrorEmbed('Oyun bilgisi alınamadı!')] });
