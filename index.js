@@ -2536,16 +2536,13 @@ async function handleIttifakSiralama(interaction) {
     ASIZ: 'Askeri İnzibat'
   };
 
-  const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣'];
-
   const sorted = Object.entries(teamData.teams)
     .map(([key, count]) => ({ key, name: branchNames[key] || key, count: Number(count) || 0 }))
     .sort((a, b) => b.count - a.count);
 
   let rankText = '';
   sorted.forEach((branch, i) => {
-    const medal = medals[i] || `${i + 1}.`;
-    rankText += `${medal} **${branch.name}**\n└ Aktif Personel: \`${branch.count}\`\n\n`;
+    rankText += `**${i + 1}. ${branch.name}**\n└ Aktif Personel: \`${branch.count}\`\n\n`;
   });
 
   const lastUpdate = teamData.last_update > 0
@@ -2553,7 +2550,7 @@ async function handleIttifakSiralama(interaction) {
     : 'Veri senkronize edilmedi';
 
   const embed = new EmbedBuilder()
-    .setTitle('🏆 İTTİFAK BRANŞ SIRALAMASI')
+    .setTitle('İTTİFAK BRANŞ SIRALAMASI')
     .setDescription('AEK ve ATF branşlarının anlık aktiflik sıralaması aşağıda listelenmiştir.')
     .addFields({ name: 'SIRA', value: rankText || 'Veri bulunamadı.', inline: false })
     .setColor(0xFFD700)
