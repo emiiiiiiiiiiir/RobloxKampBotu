@@ -2512,7 +2512,7 @@ async function handleIttifakActivity(interaction) {
   const atfText = atfActivity ? `${atfActivity.playing}` : 'Alınamadı';
 
   const embed = new EmbedBuilder()
-    .setDescription(`**AEK oyununun aktifliği: ${aekText}**\n**ATF oyununun aktifliği: ${atfText}**`)
+    .setDescription(`\`\`\`\nAEK oyununun aktifliği: ${aekText}\nATF oyununun aktifliği: ${atfText}\`\`\``)
     .setColor(0x2B2D31);
 
   await interaction.editReply({ embeds: [embed] });
