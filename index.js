@@ -2061,42 +2061,50 @@ async function handleBanAmnesty(interaction) {
   await interaction.deferReply();
 
   const reason = interaction.options.getString('sebep') || 'Ban affı';
-  const guild = interaction.guild;
+  const guilds = client.guilds.cache;
 
-  let banList;
-  try {
-    banList = await guild.bans.fetch();
-  } catch {
-    return interaction.editReply({ embeds: [createErrorEmbed('Yasak listesi alınamadı!')] });
-  }
+  let toplamYasaklı = 0;
+  let toplamBaşarılı = 0;
+  let toplamBaşarısız = 0;
+  const sunucuSonuçları = [];
 
-  if (banList.size === 0) {
-    return interaction.editReply({
-      embeds: [new EmbedBuilder()
-        .setDescription('Bu sunucuda yasaklı kullanıcı bulunmuyor.')
-        .setColor(0x57F287)]
-    });
-  }
-
-  let başarılı = 0;
-  let başarısız = 0;
-
-  for (const [userId] of banList) {
+  for (const [, guild] of guilds) {
     try {
-      await guild.members.unban(userId, reason);
-      başarılı++;
+      const banList = await guild.bans.fetch();
+      if (banList.size === 0) {
+        sunucuSonuçları.push(`• ${guild.name}: Yasaklı yok`);
+        continue;
+      }
+
+      let başarılı = 0;
+      let başarısız = 0;
+
+      for (const [userId] of banList) {
+        try {
+          await guild.members.unban(userId, reason);
+          başarılı++;
+        } catch {
+          başarısız++;
+        }
+      }
+
+      toplamYasaklı += banList.size;
+      toplamBaşarılı += başarılı;
+      toplamBaşarısız += başarısız;
+      sunucuSonuçları.push(`• ${guild.name}: ${başarılı} kaldırıldı, ${başarısız} başarısız`);
     } catch {
-      başarısız++;
+      sunucuSonuçları.push(`• ${guild.name}: Yasak listesi alınamadı`);
     }
   }
 
   const embed = new EmbedBuilder()
     .setTitle('Ban Affı Tamamlandı')
     .addFields(
-      { name: 'Toplam Yasaklı', value: `\`${banList.size}\``, inline: true },
-      { name: 'Yasağı Kaldırılan', value: `\`${başarılı}\``, inline: true },
-      { name: 'Başarısız', value: `\`${başarısız}\``, inline: true },
-      { name: 'Sebep', value: reason, inline: false }
+      { name: 'Toplam Yasaklı', value: `\`${toplamYasaklı}\``, inline: true },
+      { name: 'Yasağı Kaldırılan', value: `\`${toplamBaşarılı}\``, inline: true },
+      { name: 'Başarısız', value: `\`${toplamBaşarısız}\``, inline: true },
+      { name: 'Sebep', value: reason, inline: false },
+      { name: 'Sunucu Detayları', value: sunucuSonuçları.join('\n') || 'Yok', inline: false }
     )
     .setColor(0x57F287)
     .setTimestamp();
