@@ -38,6 +38,21 @@ const ACCOUNT_LINKS_FILE = './account_links.json';
 const PENDING_VERIFICATIONS_FILE = './pending_verifications.json';
 const ACTIVE_TICKETS_FILE = './active_tickets.json';
 
+// Sunucu adına göre doğru grup config'ini döndürür
+function getGuildConfig(guild) {
+  const name = guild ? guild.name : '';
+  if (name.includes('ATF')) {
+    return {
+      groupId: config.atf.groupId,
+      branchGroups: config.atf.branchGroups || {}
+    };
+  }
+  return {
+    groupId: config.groupId,
+    branchGroups: config.branchGroups || {}
+  };
+}
+
 // Hata embed oluşturucu
 function createErrorEmbed(message) {
   return new EmbedBuilder()
@@ -373,7 +388,7 @@ async function isUserInMainGroup(discordUserId) {
     const groups = await robloxAPI.getUserGroups(userId);
     if (!groups) return true;
 
-    return groups.some(g => String(g.groupId) === String(config.groupId));
+    return groups.some(g => String(g.groupId) === String(config.groupId) || String(g.groupId) === String(config.atf?.groupId));
   } catch (err) {
     console.error('Ana grup kontrolü hatası:', err.message);
     return true;
@@ -873,12 +888,13 @@ client.on('interactionCreate', async (interaction) => {
     
     if (focusedOption.name === 'rütbe') {
       try {
-        let groupId = config.groupId;
+        const acGuildCfg = getGuildConfig(interaction.guild);
+        let groupId = acGuildCfg.groupId;
         
         if (commandName === 'branş-rütbe-değiştir') {
           const branch = interaction.options.getString('branş');
-          if (branch && config.branchGroups[branch]) {
-            groupId = config.branchGroups[branch];
+          if (branch && acGuildCfg.branchGroups[branch]) {
+            groupId = acGuildCfg.branchGroups[branch];
           }
         }
         
@@ -1012,7 +1028,7 @@ async function handleVerificationButton(interaction) {
   }
 }
 
-async function checkRankPermissions(discordUserId, targetRank) {
+async function checkRankPermissions(discordUserId, targetRank, guild) {
   const managerUsername = getLinkedRobloxUsername(discordUserId);
   if (!managerUsername) {
     return { 
@@ -1029,7 +1045,8 @@ async function checkRankPermissions(discordUserId, targetRank) {
     };
   }
 
-  const managerRank = await robloxAPI.getUserRankInGroup(managerId, config.groupId);
+  const guildCfg = getGuildConfig(guild);
+  const managerRank = await robloxAPI.getUserRankInGroup(managerId, guildCfg.groupId);
   if (!managerRank) {
     return { 
       allowed: false, 
@@ -1169,8 +1186,9 @@ async function handleRobloxLink(interaction) {
 }
 
 async function handleRankQuery(interaction) {
-  if (!interaction.guild.name.includes('AEK')) {
-    return interaction.reply({ content: 'HATA: Bu komut sadece |AEK| Turkish Armed Forces\'a bağlı sunucularda kullanılabilir.', ephemeral: true });
+  const guildName = interaction.guild.name;
+  if (!guildName.includes('AEK') && !guildName.includes('ATF')) {
+    return interaction.reply({ content: 'HATA: Bu komut sadece AEK veya ATF sunucularında kullanılabilir.', ephemeral: true });
   }
   
   await interaction.deferReply();
@@ -1185,7 +1203,8 @@ async function handleRankQuery(interaction) {
   }
   
   const userInfo = await robloxAPI.getUserInfo(userId);
-  const rankInfo = await robloxAPI.getUserRankInGroup(userId, config.groupId);
+  const { groupId } = getGuildConfig(interaction.guild);
+  const rankInfo = await robloxAPI.getUserRankInGroup(userId, groupId);
   
   if (!rankInfo) {
     return interaction.editReply({ embeds: [createErrorEmbed('Kullanıcı grupta değil!')] });
@@ -1207,8 +1226,9 @@ async function handleRankQuery(interaction) {
 }
 
 async function handleRankChange(interaction) {
-  if (!interaction.guild.name.includes('AEK')) {
-    return interaction.reply({ content: 'HATA: Bu komut sadece |AEK| Turkish Armed Forces\'a bağlı sunucularda kullanılabilir.', ephemeral: true });
+  const guildName = interaction.guild.name;
+  if (!guildName.includes('AEK') && !guildName.includes('ATF')) {
+    return interaction.reply({ content: 'HATA: Bu komut sadece AEK veya ATF sunucularında kullanılabilir.', ephemeral: true });
   }
   
   await interaction.deferReply();
@@ -1218,13 +1238,14 @@ async function handleRankChange(interaction) {
   const robloxNick = interaction.options.getString('kişi');
   const targetRankName = interaction.options.getString('rütbe');
   const reason = interaction.options.getString('sebep');
+  const { groupId } = getGuildConfig(interaction.guild);
   
   const targetUserId = await robloxAPI.getUserIdByUsername(robloxNick);
   if (!targetUserId) {
     return interaction.editReply({ embeds: [createErrorEmbed('Hedef kullanıcı bulunamadı!')] });
   }
 
-  const roles = await robloxAPI.getGroupRoles(config.groupId);
+  const roles = await robloxAPI.getGroupRoles(groupId);
   if (!roles) {
     return interaction.editReply({ embeds: [createErrorEmbed('Grup rütbeleri alınamadı!')] });
   }
@@ -1234,13 +1255,13 @@ async function handleRankChange(interaction) {
     return interaction.editReply({ embeds: [createErrorEmbed('Geçersiz rütbe adı!')] });
   }
 
-  const permissionCheck = await checkRankPermissions(interaction.user.id, targetRole.rank);
+  const permissionCheck = await checkRankPermissions(interaction.user.id, targetRole.rank, interaction.guild);
   if (!permissionCheck.allowed) {
     return interaction.editReply({ embeds: [permissionCheck.embed] });
   }
 
   // Hedef kişinin rütbesini kontrol et
-  const targetRank = await robloxAPI.getUserRankInGroup(targetUserId, config.groupId);
+  const targetRank = await robloxAPI.getUserRankInGroup(targetUserId, groupId);
   if (targetRank && targetRank.rank >= permissionCheck.managerRank.rank && permissionCheck.managerRank.rank !== 255) {
     return interaction.editReply({ embeds: [createErrorEmbed('Sizden üst veya sizinle aynı rütbede olan birine işlem yapamazsınız!')] });
   }
@@ -1249,7 +1270,7 @@ async function handleRankChange(interaction) {
     return interaction.editReply({ embeds: [createErrorEmbed('Kendi rütbeni değiştiremezsin!')] });
   }
 
-  const result = await robloxAPI.setUserRole(targetUserId, config.groupId, targetRole.id, ROBLOX_COOKIE);
+  const result = await robloxAPI.setUserRole(targetUserId, groupId, targetRole.id, ROBLOX_COOKIE);
   
   if (result && !result.error) {
     const currentRank = targetRank;
@@ -1277,8 +1298,9 @@ async function handleRankChange(interaction) {
 }
 
 async function handleRankPromotion(interaction) {
-  if (!interaction.guild.name.includes('AEK')) {
-    return interaction.reply({ content: 'HATA: Bu komut sadece |AEK| Turkish Armed Forces\'a bağlı sunucularda kullanılabilir.', ephemeral: true });
+  const guildName = interaction.guild.name;
+  if (!guildName.includes('AEK') && !guildName.includes('ATF')) {
+    return interaction.reply({ content: 'HATA: Bu komut sadece AEK veya ATF sunucularında kullanılabilir.', ephemeral: true });
   }
   
   await interaction.deferReply();
@@ -1287,18 +1309,19 @@ async function handleRankPromotion(interaction) {
 
   const robloxNick = interaction.options.getString('kişi');
   const reason = interaction.options.getString('sebep');
+  const { groupId } = getGuildConfig(interaction.guild);
   const userId = await robloxAPI.getUserIdByUsername(robloxNick);
   
   if (!userId) {
     return interaction.editReply({ embeds: [createErrorEmbed('Hedef kullanıcı bulunamadı!')] });
   }
   
-  const currentRank = await robloxAPI.getUserRankInGroup(userId, config.groupId);
+  const currentRank = await robloxAPI.getUserRankInGroup(userId, groupId);
   if (!currentRank) {
     return interaction.editReply({ embeds: [createErrorEmbed('Kullanıcı grupta değil!')] });
   }
   
-  const roles = await robloxAPI.getGroupRoles(config.groupId);
+  const roles = await robloxAPI.getGroupRoles(groupId);
   if (!roles) {
     return interaction.editReply({ embeds: [createErrorEmbed('Grup rütbeleri alınamadı! Grup ID\'sini kontrol edin.')] });
   }
@@ -1312,7 +1335,7 @@ async function handleRankPromotion(interaction) {
   
   const nextRole = sortedRoles[currentIndex + 1];
   
-  const permissionCheck = await checkRankPermissions(interaction.user.id, nextRole.rank);
+  const permissionCheck = await checkRankPermissions(interaction.user.id, nextRole.rank, interaction.guild);
   if (!permissionCheck.allowed) {
     return interaction.editReply({ embeds: [permissionCheck.embed] });
   }
@@ -1322,7 +1345,7 @@ async function handleRankPromotion(interaction) {
     return interaction.editReply({ embeds: [createErrorEmbed('Kendi rütbenizi değiştiremezsiniz!')] });
   }
   
-  const result = await robloxAPI.setUserRole(userId, config.groupId, nextRole.id, ROBLOX_COOKIE);
+  const result = await robloxAPI.setUserRole(userId, groupId, nextRole.id, ROBLOX_COOKIE);
   
   if (result && !result.error) {
     await sendRankChangeWebhook({
@@ -1346,7 +1369,7 @@ async function handleRankPromotion(interaction) {
   }
 }
 
-async function checkBranchRankPermissions(discordUserId, branch, targetRank) {
+async function checkBranchRankPermissions(discordUserId, branch, targetRank, guild) {
   const managerUsername = getLinkedRobloxUsername(discordUserId);
   if (!managerUsername) {
     return { 
@@ -1355,7 +1378,8 @@ async function checkBranchRankPermissions(discordUserId, branch, targetRank) {
     };
   }
 
-  const branchGroupId = config.branchGroups[branch];
+  const { branchGroups } = getGuildConfig(guild);
+  const branchGroupId = branchGroups[branch];
   if (!branchGroupId || branchGroupId === 'GRUP_ID_BURAYA') {
     return { 
       allowed: false, 
@@ -1402,8 +1426,9 @@ async function checkBranchRankPermissions(discordUserId, branch, targetRank) {
 }
 
 async function handleBranchRankChange(interaction) {
-  if (!interaction.guild.name.includes('AEK')) {
-    return interaction.reply({ content: 'HATA: Bu komut sadece |AEK| sunucularında kullanılabilir.', flags: 64 });
+  const guildName = interaction.guild.name;
+  if (!guildName.includes('AEK') && !guildName.includes('ATF')) {
+    return interaction.reply({ content: 'HATA: Bu komut sadece AEK veya ATF sunucularında kullanılabilir.', flags: 64 });
   }
   await interaction.deferReply();
   if (!(await checkAccountSync(interaction))) return;
@@ -1416,10 +1441,11 @@ async function handleBranchRankChange(interaction) {
   const targetUserId = await robloxAPI.getUserIdByUsername(targetNick);
   if (!targetUserId) return interaction.editReply({ embeds: [createErrorEmbed('Hedef kullanıcı bulunamadı!')] });
 
-  const branchGroupId = config.branchGroups[branch];
+  const { branchGroups } = getGuildConfig(interaction.guild);
+  const branchGroupId = branchGroups[branch];
   const targetCurrentRank = await robloxAPI.getUserRankInGroup(targetUserId, branchGroupId);
   
-  const permCheck = await checkBranchRankPermissions(interaction.user.id, branch, targetCurrentRank?.rank);
+  const permCheck = await checkBranchRankPermissions(interaction.user.id, branch, targetCurrentRank?.rank, interaction.guild);
   if (!permCheck.allowed) return interaction.editReply({ embeds: [permCheck.embed] });
 
   const roles = await robloxAPI.getGroupRoles(branchGroupId);
@@ -1451,7 +1477,8 @@ async function handleBranchRankChange(interaction) {
 }
 
 async function handleBranchKick(interaction) {
-  if (!interaction.guild.name.includes('AEK')) return interaction.reply({ content: 'HATA!', flags: 64 });
+  const guildName = interaction.guild.name;
+  if (!guildName.includes('AEK') && !guildName.includes('ATF')) return interaction.reply({ content: 'HATA: Bu komut sadece AEK veya ATF sunucularında kullanılabilir.', flags: 64 });
   await interaction.deferReply();
   
   const targetNick = interaction.options.getString('kişi');
@@ -1460,17 +1487,16 @@ async function handleBranchKick(interaction) {
   const targetUserId = await robloxAPI.getUserIdByUsername(targetNick);
   if (!targetUserId) return interaction.editReply({ embeds: [createErrorEmbed('Hedef kullanıcı bulunamadı!')] });
 
-  // Mevcut kullanıcının hangi branş gruplarında olduğunu bul
+  const { branchGroups } = getGuildConfig(interaction.guild);
   const removedBranches = [];
-  if (config.branchGroups) {
-    for (const branchName in config.branchGroups) {
-      const branchId = config.branchGroups[branchName];
+  if (branchGroups) {
+    for (const branchName in branchGroups) {
+      const branchId = branchGroups[branchName];
       if (branchId && branchId !== 'GRUP_ID_BURAYA') {
         try {
           const currentBranchRank = await robloxAPI.getUserRankInGroup(targetUserId, branchId);
           if (currentBranchRank && currentBranchRank.rank > 0) {
-            // Yetki kontrolü (branş yetkilisi mi?)
-            const permCheck = await checkBranchRankPermissions(interaction.user.id, branchName);
+            const permCheck = await checkBranchRankPermissions(interaction.user.id, branchName, undefined, interaction.guild);
             if (permCheck.allowed) {
               await robloxAPI.setUserRole(targetUserId, branchId, 0, ROBLOX_COOKIE);
               removedBranches.push(branchName);
@@ -1529,7 +1555,8 @@ async function handleBranchRequestQuery(interaction) {
 
   const pendingBranches = [];
 
-  for (const [branchName, groupId] of Object.entries(config.branchGroups)) {
+  const { branchGroups: bGroups1 } = getGuildConfig(interaction.guild);
+  for (const [branchName, groupId] of Object.entries(bGroups1)) {
     try {
       const requests = await robloxAPI.getJoinRequests(groupId, ROBLOX_COOKIE);
       if (requests && requests.some(r => r.requester?.userId === userId)) {
@@ -1573,7 +1600,8 @@ async function handleBranchRankQuery(interaction) {
 
   const branchRanks = [];
 
-  for (const [branchName, groupId] of Object.entries(config.branchGroups)) {
+  const { branchGroups: bGroups2 } = getGuildConfig(interaction.guild);
+  for (const [branchName, groupId] of Object.entries(bGroups2)) {
     try {
       const rank = await robloxAPI.getUserRankInGroup(userId, groupId);
       if (rank) {
@@ -1603,10 +1631,11 @@ async function handleBranchRequest(interaction) {
   const decision = interaction.options.getString('karar');
   const reason = interaction.options.getString('sebep');
 
-  const permCheck = await checkBranchRankPermissions(interaction.user.id, branch);
+  const permCheck = await checkBranchRankPermissions(interaction.user.id, branch, undefined, interaction.guild);
   if (!permCheck.allowed) return interaction.editReply({ embeds: [permCheck.embed] });
 
-  const branchGroupId = config.branchGroups[branch];
+  const { branchGroups: bGroups3 } = getGuildConfig(interaction.guild);
+  const branchGroupId = bGroups3[branch];
   
   if (decision === 'kabul') {
     // Önce kullanıcının ID'sini al
@@ -1655,8 +1684,8 @@ async function handleGroupList(interaction) {
   const userId = await robloxAPI.getUserIdByUsername(targetNick);
   if (!userId) return interaction.editReply({ embeds: [createErrorEmbed('Kullanıcı bulunamadı!')] });
 
-  // Sadece config'deki grupları kontrol et
-  const groups = [config.groupId, ...Object.values(config.branchGroups)].filter(id => id && id !== 'GRUP_ID_BURAYA');
+  const gCfg = getGuildConfig(interaction.guild);
+  const groups = [gCfg.groupId, ...Object.values(gCfg.branchGroups)].filter(id => id && id !== 'GRUP_ID_BURAYA');
   const results = [];
   
   for (const gid of groups) {
@@ -1674,8 +1703,9 @@ async function handleGroupList(interaction) {
 }
 
 async function handleDemote(interaction) {
-  if (!interaction.guild.name.includes('AEK')) {
-    return interaction.reply({ content: 'HATA: Bu komut sadece |AEK| Turkish Armed Forces\'a bağlı sunucularda kullanılabilir.', ephemeral: true });
+  const guildName = interaction.guild.name;
+  if (!guildName.includes('AEK') && !guildName.includes('ATF')) {
+    return interaction.reply({ content: 'HATA: Bu komut sadece AEK veya ATF sunucularında kullanılabilir.', ephemeral: true });
   }
 
   await interaction.deferReply();
@@ -1684,34 +1714,29 @@ async function handleDemote(interaction) {
 
   const targetNick = interaction.options.getString('kişi');
   const reason = interaction.options.getString('sebep');
+  const { groupId, branchGroups } = getGuildConfig(interaction.guild);
   
   const targetUserId = await robloxAPI.getUserIdByUsername(targetNick);
   if (!targetUserId) return interaction.editReply({ embeds: [createErrorEmbed('Hedef kullanıcı bulunamadı!')] });
 
-  const permissionCheck = await checkRankPermissions(interaction.user.id);
+  const permissionCheck = await checkRankPermissions(interaction.user.id, undefined, interaction.guild);
   if (!permissionCheck.allowed) return interaction.editReply({ embeds: [permissionCheck.embed] });
 
-  // Kullanıcının mevcut rütbesini al
-  const targetRank = await robloxAPI.getUserRankInGroup(targetUserId, config.groupId);
-  
-  // Ana grupta rütbe 1'e çek
-  const roles = await robloxAPI.getGroupRoles(config.groupId);
-  const minRole = roles.sort((a,b) => a.rank - b.rank)[1]; // 0 misafir, 1 üye
+  const targetRank = await robloxAPI.getUserRankInGroup(targetUserId, groupId);
+  const roles = await robloxAPI.getGroupRoles(groupId);
+  const minRole = roles.sort((a,b) => a.rank - b.rank)[1];
   
   let result = { success: true };
-  // Eğer zaten hedef rütbede değilse güncelle
   if (targetRank && targetRank.id !== minRole.id) {
-    result = await robloxAPI.setUserRole(targetUserId, config.groupId, minRole.id, ROBLOX_COOKIE);
+    result = await robloxAPI.setUserRole(targetUserId, groupId, minRole.id, ROBLOX_COOKIE);
   }
   
   if (result && !result.error) {
     const removedBranches = [];
-    // Branş gruplarından atma işlemi
-    if (config.branchGroups) {
-      for (const branchName in config.branchGroups) {
-        const branchId = config.branchGroups[branchName];
+    if (branchGroups) {
+      for (const branchName in branchGroups) {
+        const branchId = branchGroups[branchName];
         if (branchId && branchId !== 'GRUP_ID_BURAYA') {
-          // rütbeyi 0 (misafir) yaparak gruptan çıkarıyoruz
           try {
             const currentBranchRank = await robloxAPI.getUserRankInGroup(targetUserId, branchId);
             if (currentBranchRank && currentBranchRank.rank > 0) {
