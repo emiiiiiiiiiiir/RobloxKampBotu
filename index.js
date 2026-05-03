@@ -549,6 +549,10 @@ const commands = [
   new SlashCommandBuilder()
     .setName('ittifak-aktiflik')
     .setDescription('AEK ve ATF oyunlarının aktifliğini birlikte gösterir'),
+
+  new SlashCommandBuilder()
+    .setName('ittifak-sıralama')
+    .setDescription('AEK ve ATF branşlarını aktifliğe göre sıralar (Sadece İttifak Yetkilileri)'),
   
   new SlashCommandBuilder()
     .setName('yenile')
@@ -823,6 +827,9 @@ client.on('interactionCreate', async (interaction) => {
           break;
         case 'ittifak-aktiflik':
           await handleIttifakActivity(interaction);
+          break;
+        case 'ittifak-sıralama':
+          await handleIttifakSiralama(interaction);
           break;
         case 'yenile':
           await handleYenile(interaction);
@@ -2493,6 +2500,66 @@ async function handleActivityQuery(interaction) {
     .setDescription(`**${activity.name}** oyununun mevcut aktifliği: **${activity.playing}** oyuncu`)
     .setColor(0x57F287);
   
+  await interaction.editReply({ embeds: [embed] });
+}
+
+async function handleIttifakSiralama(interaction) {
+  await interaction.deferReply();
+
+  // İttifak yetkili kontrolü: AEK veya ATF admin rollerinden herhangi birine sahip olmalı
+  const aekAdminRoleIds = config.adminRoleIds || [];
+  const atfAdminRoleIds = (config.atf && config.atf.adminRoleIds) || [];
+  const allAdminRoleIds = [...aekAdminRoleIds, ...atfAdminRoleIds];
+
+  const hasPermission = allAdminRoleIds.some(idStr => {
+    const ids = idStr.split(',').map(s => s.trim());
+    return ids.some(id => interaction.member.roles.cache.has(id));
+  });
+
+  if (!hasPermission) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Bu komutu sadece **İttifak Yetkilileri** kullanabilir!')] });
+  }
+
+  let teamData = { teams: {}, last_update: 0 };
+  try {
+    if (fs.existsSync(TEAM_ACTIVITY_FILE)) {
+      teamData = JSON.parse(fs.readFileSync(TEAM_ACTIVITY_FILE, 'utf8'));
+    }
+  } catch (e) {}
+
+  const branchNames = {
+    DKK: 'Deniz Kuvvetleri Komutanlığı',
+    KKK: 'Kara Kuvvetleri Komutanlığı',
+    HKK: 'Hava Kuvvetleri Komutanlığı',
+    OKK: 'Özel Kuvvetler Komutanlığı',
+    JGK: 'Jandarma Genel Komutanlığı',
+    ASIZ: 'Askeri İnzibat'
+  };
+
+  const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣'];
+
+  const sorted = Object.entries(teamData.teams)
+    .map(([key, count]) => ({ key, name: branchNames[key] || key, count: Number(count) || 0 }))
+    .sort((a, b) => b.count - a.count);
+
+  let rankText = '';
+  sorted.forEach((branch, i) => {
+    const medal = medals[i] || `${i + 1}.`;
+    rankText += `${medal} **${branch.name}**\n└ Aktif Personel: \`${branch.count}\`\n\n`;
+  });
+
+  const lastUpdate = teamData.last_update > 0
+    ? new Date(teamData.last_update).toLocaleTimeString('tr-TR')
+    : 'Veri senkronize edilmedi';
+
+  const embed = new EmbedBuilder()
+    .setTitle('🏆 İTTİFAK BRANŞ SIRALAMASI')
+    .setDescription('AEK ve ATF branşlarının anlık aktiflik sıralaması aşağıda listelenmiştir.')
+    .addFields({ name: 'SIRA', value: rankText || 'Veri bulunamadı.', inline: false })
+    .setColor(0xFFD700)
+    .setFooter({ text: `Son Güncelleme: ${lastUpdate}` })
+    .setTimestamp();
+
   await interaction.editReply({ embeds: [embed] });
 }
 
