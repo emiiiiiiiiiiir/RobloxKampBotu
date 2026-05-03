@@ -178,10 +178,10 @@ class RobloxAPI {
   // Oyun aktifliğini al (Place ID kullanarak)
   async getGameActivity(placeId) {
     try {
-      // Place ID'yi Universe ID'ye çevir
-      const universeId = await this.getUniverseId(placeId);
+      // Önce Place ID olarak dene, başarısız olursa direkt Universe ID olarak kullan
+      let universeId = await this.getUniverseId(placeId);
       if (!universeId) {
-        return null;
+        universeId = placeId;
       }
 
       const response = await axios.get(
