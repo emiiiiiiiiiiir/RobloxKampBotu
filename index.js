@@ -2046,12 +2046,15 @@ async function handleGameBanQuery(interaction) {
 }
 
 async function handleBanAmnesty(interaction) {
-  const hasAdminRole = getGuildConfig(interaction.guild).adminRoleIds.some(idStr => {
-    const ids = idStr.split(',').map(s => s.trim());
-    return ids.some(id => interaction.member.roles.cache.has(id));
-  });
+  const AMNESTY_GUILD_ID = '1500506349518323842';
+  const AMNESTY_ROLE_IDS = ['1500513256907739268', '1500512374615052375', '1500512537089806499'];
 
-  if (!hasAdminRole) {
+  if (interaction.guildId !== AMNESTY_GUILD_ID) {
+    return interaction.reply({ embeds: [createErrorEmbed('Bu komut sadece yetkili sunucuda kullanılabilir!')], flags: 64 });
+  }
+
+  const hasRole = AMNESTY_ROLE_IDS.some(id => interaction.member.roles.cache.has(id));
+  if (!hasRole) {
     return interaction.reply({ embeds: [createErrorEmbed('Bu komutu kullanma yetkiniz yok!')], flags: 64 });
   }
 
