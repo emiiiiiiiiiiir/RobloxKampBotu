@@ -2058,6 +2058,11 @@ async function handleAnnouncement(interaction) {
   const channelName = interaction.options.getString('kanal_adi');
   const attachment = interaction.options.getAttachment('görsel');
 
+  // Sadece belirtilen sunucuda kullanılabilir
+  if (interaction.guildId !== ANNOUNCEMENT_GUILD_ID) {
+    return interaction.reply({ embeds: [createErrorEmbed('Bu komut sadece yetkili sunucuda kullanılabilir!')], flags: 64 });
+  }
+
   if (!message && !attachment) {
     return interaction.reply({ embeds: [createErrorEmbed('Mesaj veya görsel en az birini girmelisiniz!')], ephemeral: true });
   }
