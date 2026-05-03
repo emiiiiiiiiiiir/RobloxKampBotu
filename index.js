@@ -551,8 +551,8 @@ const commands = [
     .setDescription('AEK ve ATF oyunlarının aktifliğini birlikte gösterir'),
 
   new SlashCommandBuilder()
-    .setName('ittifak-sıralama')
-    .setDescription('AEK ve ATF branşlarını aktifliğe göre sıralar (Sadece İttifak Yetkilileri)'),
+    .setName('ittifak-branş-aktiflik')
+    .setDescription('AEK ve ATF branşlarının aktifliğini ayrı ayrı gösterir (Sadece İttifak Yetkilileri)'),
   
   new SlashCommandBuilder()
     .setName('yenile')
@@ -828,8 +828,8 @@ client.on('interactionCreate', async (interaction) => {
         case 'ittifak-aktiflik':
           await handleIttifakActivity(interaction);
           break;
-        case 'ittifak-sıralama':
-          await handleIttifakSiralama(interaction);
+        case 'ittifak-branş-aktiflik':
+          await handleIttifakBransAktiflik(interaction);
           break;
         case 'yenile':
           await handleYenile(interaction);
@@ -2503,10 +2503,9 @@ async function handleActivityQuery(interaction) {
   await interaction.editReply({ embeds: [embed] });
 }
 
-async function handleIttifakSiralama(interaction) {
+async function handleIttifakBransAktiflik(interaction) {
   await interaction.deferReply();
 
-  // İttifak yetkili kontrolü: AEK veya ATF admin rollerinden herhangi birine sahip olmalı
   const aekAdminRoleIds = config.adminRoleIds || [];
   const atfAdminRoleIds = (config.atf && config.atf.adminRoleIds) || [];
   const allAdminRoleIds = [...aekAdminRoleIds, ...atfAdminRoleIds];
@@ -2520,13 +2519,6 @@ async function handleIttifakSiralama(interaction) {
     return interaction.editReply({ embeds: [createErrorEmbed('Bu komutu sadece **İttifak Yetkilileri** kullanabilir!')] });
   }
 
-  let teamData = { teams: {}, last_update: 0 };
-  try {
-    if (fs.existsSync(TEAM_ACTIVITY_FILE)) {
-      teamData = JSON.parse(fs.readFileSync(TEAM_ACTIVITY_FILE, 'utf8'));
-    }
-  } catch (e) {}
-
   const branchNames = {
     DKK: 'Deniz Kuvvetleri Komutanlığı',
     KKK: 'Kara Kuvvetleri Komutanlığı',
@@ -2536,25 +2528,39 @@ async function handleIttifakSiralama(interaction) {
     ASIZ: 'Askeri İnzibat'
   };
 
-  const sorted = Object.entries(teamData.teams)
-    .map(([key, count]) => ({ key, name: branchNames[key] || key, count: Number(count) || 0 }))
-    .sort((a, b) => b.count - a.count);
+  function readTeamFile(filePath) {
+    try {
+      if (fs.existsSync(filePath)) {
+        return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      }
+    } catch (e) {}
+    return { teams: {}, last_update: 0 };
+  }
 
-  let rankText = '';
-  sorted.forEach((branch, i) => {
-    rankText += `**${i + 1}. ${branch.name}**\n└ Aktif Personel: \`${branch.count}\`\n\n`;
-  });
+  function buildRankText(teamData) {
+    const sorted = Object.entries(teamData.teams)
+      .map(([key, count]) => ({ key, name: branchNames[key] || key, count: Number(count) || 0 }))
+      .sort((a, b) => b.count - a.count);
+    if (sorted.length === 0) return 'Veri bulunamadı.';
+    return sorted.map((b, i) => `**${i + 1}. ${b.name}**\n└ Aktif Personel: \`${b.count}\``).join('\n\n');
+  }
 
-  const lastUpdate = teamData.last_update > 0
-    ? new Date(teamData.last_update).toLocaleTimeString('tr-TR')
-    : 'Veri senkronize edilmedi';
+  const aekData = readTeamFile(TEAM_ACTIVITY_FILE);
+  const atfData = readTeamFile(TEAM_ACTIVITY_ATF_FILE);
+
+  const aekUpdate = aekData.last_update > 0 ? new Date(aekData.last_update).toLocaleTimeString('tr-TR') : 'Yok';
+  const atfUpdate = atfData.last_update > 0 ? new Date(atfData.last_update).toLocaleTimeString('tr-TR') : 'Yok';
 
   const embed = new EmbedBuilder()
-    .setTitle('İTTİFAK BRANŞ SIRALAMASI')
-    .setDescription('AEK ve ATF branşlarının anlık aktiflik sıralaması aşağıda listelenmiştir.')
-    .addFields({ name: 'SIRA', value: rankText || 'Veri bulunamadı.', inline: false })
-    .setColor(0xFFD700)
-    .setFooter({ text: `Son Güncelleme: ${lastUpdate}` })
+    .setTitle('İTTİFAK BRANŞ AKTİFLİK RAPORU')
+    .setDescription('AEK ve ATF branşlarının anlık aktiflik verileri aşağıda ayrı ayrı listelenmiştir.')
+    .addFields(
+      { name: 'AEK — BRANŞLAR', value: buildRankText(aekData), inline: false },
+      { name: '\u200b', value: '\u200b', inline: false },
+      { name: 'ATF — BRANŞLAR', value: buildRankText(atfData), inline: false }
+    )
+    .setColor(0x2B2D31)
+    .setFooter({ text: `AEK Son Güncelleme: ${aekUpdate} | ATF Son Güncelleme: ${atfUpdate}` })
     .setTimestamp();
 
   await interaction.editReply({ embeds: [embed] });
@@ -2579,6 +2585,7 @@ async function handleIttifakActivity(interaction) {
 }
 
 const TEAM_ACTIVITY_FILE = './data/team_activity.json';
+const TEAM_ACTIVITY_ATF_FILE = './data/team_activity_atf.json';
 
 // Express setup for team updates
 // Use a common port or share the existing app if defined
@@ -2602,6 +2609,23 @@ app.post('/update-teams', (req, res) => {
     try {
       const data = { teams: teams, last_update: Date.now() };
       fs.writeFileSync(TEAM_ACTIVITY_FILE, JSON.stringify(data, null, 2));
+      return res.status(200).send('Updated');
+    } catch (e) {
+      return res.status(500).send('Error');
+    }
+  }
+  res.status(400).send('Invalid data');
+});
+
+app.post('/update-teams-atf', (req, res) => {
+  const { teams, secret } = req.body;
+  if (secret !== process.env.ROBLOX_API_KEY && secret !== 'AEK_SECRET_123') {
+    return res.status(403).send('Unauthorized');
+  }
+  if (teams) {
+    try {
+      const data = { teams: teams, last_update: Date.now() };
+      fs.writeFileSync(TEAM_ACTIVITY_ATF_FILE, JSON.stringify(data, null, 2));
       return res.status(200).send('Updated');
     } catch (e) {
       return res.status(500).send('Error');
