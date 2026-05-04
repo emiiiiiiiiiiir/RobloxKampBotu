@@ -1405,6 +1405,77 @@ async function handleRankPromotion(interaction) {
   }
 }
 
+async function handleRankDemotion(interaction) {
+  const guildName = interaction.guild.name;
+  if (!guildName.includes('TKT') && !guildName.includes('ATF')) {
+    return interaction.reply({ content: 'HATA: Bu komut sadece TKT veya ATF sunucularında kullanılabilir.', ephemeral: true });
+  }
+
+  await interaction.deferReply();
+
+  if (!(await checkAccountSync(interaction))) return;
+
+  const robloxNick = interaction.options.getString('kişi');
+  const reason = interaction.options.getString('sebep');
+  const { groupId } = getGuildConfig(interaction.guild);
+  const userId = await robloxAPI.getUserIdByUsername(robloxNick);
+
+  if (!userId) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Hedef kullanıcı bulunamadı!')] });
+  }
+
+  const currentRank = await robloxAPI.getUserRankInGroup(userId, groupId);
+  if (!currentRank) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Kullanıcı grupta değil!')] });
+  }
+
+  const roles = await robloxAPI.getGroupRoles(groupId);
+  if (!roles) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Grup rütbeleri alınamadı! Grup ID\'sini kontrol edin.')] });
+  }
+
+  const sortedRoles = roles.sort((a, b) => a.rank - b.rank);
+  const currentIndex = sortedRoles.findIndex(r => r.rank === currentRank.rank);
+
+  if (currentIndex <= 0) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Kullanıcı zaten en alt rütbede!')] });
+  }
+
+  const prevRole = sortedRoles[currentIndex - 1];
+
+  const permissionCheck = await checkRankPermissions(interaction.user.id, currentRank.rank, interaction.guild);
+  if (!permissionCheck.allowed) {
+    return interaction.editReply({ embeds: [permissionCheck.embed] });
+  }
+
+  if (userId === permissionCheck.managerId) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Kendi rütbenizi değiştiremezsiniz!')] });
+  }
+
+  const result = await robloxAPI.setUserRole(userId, groupId, prevRole.id, ROBLOX_COOKIE);
+
+  if (result && !result.error) {
+    await sendRankChangeWebhook({
+      type: 'demotion',
+      targetUser: robloxNick,
+      manager: permissionCheck.managerUsername,
+      managerRank: permissionCheck.managerRank.name,
+      oldRank: `${currentRank.name} (${currentRank.rank})`,
+      newRank: `${prevRole.name} (${prevRole.rank})`,
+      reason: reason
+    });
+
+    const embed = new EmbedBuilder()
+      .setDescription(`İşlem başarıyla tamamlandı\n\n${robloxNick} (${userId}) kişisini, ${currentRank.name} rütbesinden ${prevRole.name} rütbesine başarıyla tenzil ettin.\n\n**Sebep**\n${reason}`)
+      .setColor(0xED4245);
+
+    await interaction.editReply({ embeds: [embed] });
+  } else {
+    const errorMsg = translateRobloxError(result?.error?.errors?.[0]?.message || result?.error);
+    await interaction.editReply({ embeds: [createErrorEmbed(`Tenzil işlemi başarısız! ${errorMsg}`)] });
+  }
+}
+
 async function checkBranchRankPermissions(discordUserId, branch, targetRank, guild) {
   const managerUsername = getLinkedRobloxUsername(discordUserId);
   if (!managerUsername) {
