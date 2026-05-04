@@ -4,7 +4,7 @@
   "gameId": "",
   "adminRoleIds": [""],
   "allowedRanks": [],
-  "maxRankCanAssign": 0,
+  "maxRankCanAssign": 165,
   "branchGroups": {
     "DKK": "1095945595",
     "KKK": "",
@@ -14,7 +14,7 @@
     "HKK": "774338962"
   },
   "branchManagerRanks": [],
-  "minBranchManageRank": 253,
+  "minBranchManageRank": 140,
   "webhookUrl": "",
   "branchWebhookUrl": "",
   "ticketCategoryId": "",
