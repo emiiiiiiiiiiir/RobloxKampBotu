@@ -1816,13 +1816,13 @@ async function handleDemote(interaction) {
   }
 
   await interaction.deferReply();
-  
+
   if (!(await checkAccountSync(interaction))) return;
 
   const targetNick = interaction.options.getString('kişi');
   const reason = interaction.options.getString('sebep');
   const { groupId, branchGroups } = getGuildConfig(interaction.guild);
-  
+
   const targetUserId = await robloxAPI.getUserIdByUsername(targetNick);
   if (!targetUserId) return interaction.editReply({ embeds: [createErrorEmbed('Hedef kullanıcı bulunamadı!')] });
 
@@ -1831,61 +1831,71 @@ async function handleDemote(interaction) {
 
   const targetRank = await robloxAPI.getUserRankInGroup(targetUserId, groupId);
   const roles = await robloxAPI.getGroupRoles(groupId);
-  const minRole = roles.sort((a,b) => a.rank - b.rank)[1];
-  
-  let result = { success: true };
-  if (targetRank && targetRank.id !== minRole.id) {
-    result = await robloxAPI.setUserRole(targetUserId, groupId, minRole.id, ROBLOX_COOKIE);
+  const sortedRoles = roles.sort((a, b) => a.rank - b.rank);
+
+  // OR-1/A isminde rol ara, bulamazsan rank > 0 olan ilk rolü kullan
+  const targetRole =
+    sortedRoles.find(r => r.name === 'OR-1/A') ||
+    sortedRoles.find(r => r.rank > 0);
+
+  if (!targetRole) {
+    return interaction.editReply({ embeds: [createErrorEmbed('OR-1/A rütbesi bulunamadı!')] });
   }
-  
-  if (result && !result.error) {
-    const removedBranches = [];
-    if (branchGroups) {
-      for (const branchName in branchGroups) {
-        const branchId = branchGroups[branchName];
-        if (branchId && branchId !== 'GRUP_ID_BURAYA') {
-          try {
-            const currentBranchRank = await robloxAPI.getUserRankInGroup(targetUserId, branchId);
-            if (currentBranchRank && currentBranchRank.rank > 0) {
-              await robloxAPI.banUserFromGroup(targetUserId, branchId, ROBLOX_COOKIE);
-              removedBranches.push(branchName);
-            }
-          } catch (e) {
-            console.error(`${branchName} grubundan atma hatası:`, e.message);
+
+  // Ana grup rütbe değişikliği
+  let mainGroupSuccess = true;
+  let mainGroupError = null;
+  if (targetRank && targetRank.id !== targetRole.id) {
+    const result = await robloxAPI.setUserRole(targetUserId, groupId, targetRole.id, ROBLOX_COOKIE);
+    if (result && result.error) {
+      mainGroupSuccess = false;
+      mainGroupError = translateRobloxError(result.error?.errors?.[0]?.message || result.error);
+    }
+  }
+
+  // Branşlardan at (ana grup başarısız olsa bile çalışır)
+  const removedBranches = [];
+  if (branchGroups) {
+    for (const branchName in branchGroups) {
+      const branchId = branchGroups[branchName];
+      if (branchId && branchId !== 'GRUP_ID_BURAYA') {
+        try {
+          const currentBranchRank = await robloxAPI.getUserRankInGroup(targetUserId, branchId);
+          if (currentBranchRank && currentBranchRank.rank > 0) {
+            await robloxAPI.banUserFromGroup(targetUserId, branchId, ROBLOX_COOKIE);
+            removedBranches.push(branchName);
           }
+        } catch (e) {
+          console.error(`${branchName} grubundan atma hatası:`, e.message);
         }
       }
     }
-
-    await sendRankChangeWebhook({
-      type: 'demotion',
-      targetUser: targetNick,
-      manager: permissionCheck.managerUsername,
-      managerRank: permissionCheck.managerRank.name,
-      oldRank: targetRank ? `${targetRank.name} (${targetRank.rank})` : 'Bilinmiyor',
-      newRank: `${minRole.name} (${minRole.rank})`,
-      reason: reason
-    });
-
-    const embed = new EmbedBuilder()
-      .setTitle('İşlem Başarılı')
-      .setDescription(`**${targetNick}** kullanıcısı ana grupta **${minRole.name}** rütbesine çekildi.`)
-      .addFields(
-        { name: 'Hedef Kullanıcı', value: targetNick, inline: true },
-        { name: 'Eski Rütbe', value: targetRank ? targetRank.name : 'Bilinmiyor', inline: true },
-        { name: 'Yeni Rütbe', value: minRole.name, inline: true },
-        { name: 'Atılan Branşlar', value: removedBranches.length > 0 ? removedBranches.join(', ') : 'Hiçbir branşta bulunamadı.', inline: false },
-        { name: 'Sebep', value: reason, inline: false }
-      )
-      .setThumbnail(`https://www.roblox.com/headshot-thumbnail/image?userId=${targetUserId}&width=420&height=420&format=png`)
-      .setColor(0xED4245)
-      .setTimestamp();
-
-    await interaction.editReply({ embeds: [embed] });
-  } else {
-    const errorMsg = translateRobloxError(result?.error?.errors?.[0]?.message || result?.error);
-    await interaction.editReply({ embeds: [createErrorEmbed(`Demote işlemi başarısız! ${errorMsg}`)] });
   }
+
+  await sendRankChangeWebhook({
+    type: 'demotion',
+    targetUser: targetNick,
+    manager: permissionCheck.managerUsername,
+    managerRank: permissionCheck.managerRank.name,
+    oldRank: targetRank ? `${targetRank.name} (${targetRank.rank})` : 'Bilinmiyor',
+    newRank: mainGroupSuccess ? `${targetRole.name} (${targetRole.rank})` : 'Değiştirilemedi',
+    reason: reason
+  });
+
+  const embed = new EmbedBuilder()
+    .setTitle('Demote İşlemi Tamamlandı')
+    .addFields(
+      { name: 'Hedef Kullanıcı', value: targetNick, inline: true },
+      { name: 'Eski Rütbe', value: targetRank ? targetRank.name : 'Bilinmiyor', inline: true },
+      { name: 'Ana Grup Rütbe', value: mainGroupSuccess ? `✅ ${targetRole.name}` : `❌ Hata: ${mainGroupError}`, inline: false },
+      { name: 'Atılan Branşlar', value: removedBranches.length > 0 ? `✅ ${removedBranches.join(', ')}` : 'Hiçbir branşta bulunamadı.', inline: false },
+      { name: 'Sebep', value: reason, inline: false }
+    )
+    .setThumbnail(`https://www.roblox.com/headshot-thumbnail/image?userId=${targetUserId}&width=420&height=420&format=png`)
+    .setColor(0xED4245)
+    .setTimestamp();
+
+  await interaction.editReply({ embeds: [embed] });
 }
 
 const GAME_BANS_FILE = './data/game_bans.json';
