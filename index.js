@@ -1642,16 +1642,9 @@ async function handleBranchKick(interaction) {
 }
 
 async function handleBranchRequestQuery(interaction) {
-  const hasAdminRole = getGuildConfig(interaction.guild).adminRoleIds.some(idStr => {
-    const ids = idStr.split(',').map(s => s.trim());
-    return ids.some(id => interaction.member.roles.cache.has(id));
-  });
+  await interaction.deferReply({ ephemeral: true });
 
-  if (!hasAdminRole) {
-    return interaction.reply({ embeds: [createErrorEmbed('Bu komutu kullanma yetkiniz yok!')], ephemeral: true });
-  }
-
-  await interaction.deferReply();
+  if (!(await checkAccountSync(interaction))) return;
 
   const robloxNick = interaction.options.getString('kişi');
   const userId = await robloxAPI.getUserIdByUsername(robloxNick);
@@ -1660,16 +1653,24 @@ async function handleBranchRequestQuery(interaction) {
     return interaction.editReply({ embeds: [createErrorEmbed('Kullanıcı bulunamadı!')] });
   }
 
+  const { branchGroups } = getGuildConfig(interaction.guild);
   const pendingBranches = [];
 
-  const { branchGroups: bGroups1 } = getGuildConfig(interaction.guild);
-  for (const [branchName, groupId] of Object.entries(bGroups1)) {
+  for (const [branchName, groupId] of Object.entries(branchGroups)) {
+    if (!groupId || groupId === 'GRUP_ID_BURAYA') continue;
+
+    // Kullanıcının bu branşta yetkisi var mı kontrol et
+    const permCheck = await checkBranchRankPermissions(interaction.user.id, branchName, undefined, interaction.guild);
+    if (!permCheck.allowed) continue;
+
     try {
       const requests = await robloxAPI.getJoinRequests(groupId, ROBLOX_COOKIE);
       if (requests && requests.some(r => r.requester?.userId === userId)) {
         pendingBranches.push(branchName);
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error(`${branchName} istek sorgu hatası:`, e.message);
+    }
   }
 
   const embed = new EmbedBuilder()
