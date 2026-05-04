@@ -14,6 +14,7 @@
     "HKK": "774338962"
   },
   "branchManagerRanks": [],
+  "minBranchManageRank": 253,
   "webhookUrl": "",
   "branchWebhookUrl": "",
   "ticketCategoryId": "",
