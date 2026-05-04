@@ -1605,7 +1605,7 @@ async function handleBranchKick(interaction) {
           if (currentBranchRank && currentBranchRank.rank > 0) {
             const permCheck = await checkBranchRankPermissions(interaction.user.id, branchName, undefined, interaction.guild);
             if (permCheck.allowed) {
-              await robloxAPI.setUserRole(targetUserId, branchId, 0, ROBLOX_COOKIE);
+              await robloxAPI.banUserFromGroup(targetUserId, branchId, ROBLOX_COOKIE);
               removedBranches.push(branchName);
               
               await sendRankChangeWebhook({
@@ -1847,7 +1847,7 @@ async function handleDemote(interaction) {
           try {
             const currentBranchRank = await robloxAPI.getUserRankInGroup(targetUserId, branchId);
             if (currentBranchRank && currentBranchRank.rank > 0) {
-              await robloxAPI.setUserRole(targetUserId, branchId, 0, ROBLOX_COOKIE);
+              await robloxAPI.banUserFromGroup(targetUserId, branchId, ROBLOX_COOKIE);
               removedBranches.push(branchName);
             }
           } catch (e) {
