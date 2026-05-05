@@ -3,7 +3,7 @@
   "blacklistGroupIds": [13868386],
   "gameId": "",
   "adminRoleIds": [""],
-  "allowedRanks": [],
+  "allowedRanks": [160,165,170],
   "maxRankCanAssign": 165,
   "branchGroups": {
     "DKK": "1095945595",
@@ -14,12 +14,12 @@
     "HKK": "774338962"
   },
   "branchManagerRanks": {
-    "DKK": 140,
+    "DKK": 110,
     "KKK": 140,
-    "ÖKK": 140,
-    "JGK": 140,
-    "AS.İZ": 140,
-    "HKK": 140
+    "ÖKK": 150,
+    "JGK": 145,
+    "AS.İZ": 115,
+    "HKK": 135
   },
   "webhookUrl": "",
   "branchWebhookUrl": "",
@@ -34,12 +34,12 @@
     "gameId": "",
     "adminRoleIds": [""],
     "branchGroups": {
-      "ÖKK": "",
+      "ÖKK": "702077670",
       "DKK": "1095945595",
       "KKK": "",
-      "JGK": "",
+      "JGK": "842585576",
       "AS.İZ": "820735175",
-      "HKK": ""
+      "HKK": "774338962"
     }
   }
 }
