@@ -1574,6 +1574,10 @@ async function handleBranchRankChange(interaction) {
   const targetRole = roles.find(r => r.name.toLowerCase() === rankName.toLowerCase());
   if (!targetRole) return interaction.editReply({ embeds: [createErrorEmbed('Geçersiz branş rütbesi!')] });
 
+  if (targetUserId === permCheck.managerId) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Kendi branş rütbenizi değiştiremezsiniz!')] });
+  }
+
   if (targetRole.rank >= permCheck.managerRank.rank) {
     return interaction.editReply({ embeds: [createErrorEmbed('Kendi rütbenize eşit veya üst bir rütbe veremezsiniz!')] });
   }
