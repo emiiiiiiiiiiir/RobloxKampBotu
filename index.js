@@ -52,14 +52,16 @@ function getGuildConfig(guild) {
       groupId: config.atf.groupId,
       gameId: config.atf.gameId,
       adminRoleIds: config.atf.adminRoleIds || config.adminRoleIds,
-      branchGroups: config.atf.branchGroups || {}
+      branchGroups: config.atf.branchGroups || {},
+      rankYetkiliRutbeler: config.atf.rankYetkiliRutbeler || config.rankYetkiliRutbeler || [255]
     };
   }
   return {
     groupId: config.groupId,
     gameId: config.gameId,
     adminRoleIds: config.adminRoleIds,
-    branchGroups: config.branchGroups || {}
+    branchGroups: config.branchGroups || {},
+    rankYetkiliRutbeler: config.rankYetkiliRutbeler || [255]
   };
 }
 
@@ -1106,16 +1108,11 @@ async function checkRankPermissions(discordUserId, targetRank, guild) {
   }
 
   // Yetkili rütbe seviyeleri config'den okunur
-  const guildCfgForRanks = getGuildConfig(guild);
-  const allowedRankValues = (
-    guildCfgForRanks.rankYetkiliRutbeler ||
-    config.rankYetkiliRutbeler ||
-    [255]
-  );
+  const allowedRankValues = guildCfg.rankYetkiliRutbeler;
   if (!allowedRankValues.includes(managerRank.rank)) {
     return { 
       allowed: false, 
-      embed: createErrorEmbed(`Bu işlemi yapmak için yetkiniz yetersiz! (Rütbeniz: ${managerRank.name})`)
+      embed: createErrorEmbed(`Bu işlemi yapmak için yetkiniz yetersiz! (Rütbeniz: ${managerRank.name} | Numara: ${managerRank.rank})`)
     };
   }
 
