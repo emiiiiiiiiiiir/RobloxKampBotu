@@ -2,10 +2,10 @@
   "groupId": "279222901",
   "blacklistGroupIds": [13868386],
   "gameId": "",
-  "adminRoleIds": [""],
+  "adminRoleIds": ["1420883077202182195,1454171601737224344"],
   "allowedRanks": [160,165,170],
   "maxRankCanAssign": 165,
-  "rankYetkiliRutbeler": [160, 165, 170, 155, 150, 253],
+  "rankYetkiliRutbeler": [160, 165, 170, 155, 150, 253, 255],
   "branchGroups": {
     "DKK": "1095945595",
     "KKK": "",

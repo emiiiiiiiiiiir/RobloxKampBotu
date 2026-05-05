@@ -1799,7 +1799,16 @@ async function handleDemote(interaction) {
   const permissionCheck = await checkRankPermissions(interaction.user.id, undefined, interaction.guild);
   if (!permissionCheck.allowed) return interaction.editReply({ embeds: [permissionCheck.embed] });
 
+  if (targetUserId === permissionCheck.managerId) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Kendinize demote işlemi yapamazsınız!')] });
+  }
+
   const targetRank = await robloxAPI.getUserRankInGroup(targetUserId, groupId);
+
+  if (targetRank && permissionCheck.managerRank.rank !== 255 && targetRank.rank >= permissionCheck.managerRank.rank) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Sizden üst veya aynı rütbedeki birine demote işlemi yapamazsınız!')] });
+  }
+
   const roles = await robloxAPI.getGroupRoles(groupId);
   const sortedRoles = roles.sort((a, b) => a.rank - b.rank);
 
