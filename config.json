@@ -3,7 +3,6 @@
   "blacklistGroupIds": [13868386],
   "gameId": "",
   "adminRoleIds": [""],
-  "allowedRanks": [160,165,170],
   "maxRankCanAssign": 165,
   "rankYetkiliRutbeler": [160, 165, 170],
   "branchGroups": {
