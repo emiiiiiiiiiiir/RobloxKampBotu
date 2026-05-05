@@ -1096,8 +1096,13 @@ async function checkRankPermissions(discordUserId, targetRank, guild) {
     };
   }
 
-  // Yetkili rütbe seviyeleri
-  const allowedRankValues = [35, 36, 37, 38, 39, 255];
+  // Yetkili rütbe seviyeleri config'den okunur
+  const guildCfgForRanks = getGuildConfig(guild);
+  const allowedRankValues = (
+    guildCfgForRanks.rankYetkiliRutbeler ||
+    config.rankYetkiliRutbeler ||
+    [255]
+  );
   if (!allowedRankValues.includes(managerRank.rank)) {
     return { 
       allowed: false, 
