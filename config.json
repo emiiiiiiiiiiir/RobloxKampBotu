@@ -3,6 +3,7 @@
   "blacklistGroupIds": [13868386],
   "gameId": "",
   "adminRoleIds": [""],
+  "allowedRanks": [160,165,170],
   "maxRankCanAssign": 165,
   "rankYetkiliRutbeler": [160, 165, 170],
   "branchGroups": {
@@ -27,8 +28,8 @@
   "ticketLogChannelId": "",
   "supportRoleIds": [""],
   "ticketImageUrl": "",
-  "autoVoiceChannelId": "1500511192098144337",
-  "autoVoiceGuildId": "1499718044111605910",
+  "autoVoiceChannelId": "1500611892442300576",
+  "autoVoiceGuildId": "11355337987006287893",
   "atf": {
     "groupId": "279222901",
     "gameId": "",
