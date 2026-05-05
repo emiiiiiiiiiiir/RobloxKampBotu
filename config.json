@@ -5,7 +5,7 @@
   "adminRoleIds": [""],
   "allowedRanks": [160,165,170],
   "maxRankCanAssign": 165,
-  "rankYetkiliRutbeler": [35, 36, 37, 38, 39, 255],
+  "rankYetkiliRutbeler": [16],
   "branchGroups": {
     "DKK": "1095945595",
     "KKK": "",
