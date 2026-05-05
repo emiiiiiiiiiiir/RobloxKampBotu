@@ -1650,10 +1650,6 @@ async function handleBranchRequestQuery(interaction) {
   for (const [branchName, groupId] of Object.entries(branchGroups)) {
     if (!groupId || groupId === 'GRUP_ID_BURAYA') continue;
 
-    // Kullanıcının bu branşta yetkisi var mı kontrol et
-    const permCheck = await checkBranchRankPermissions(interaction.user.id, branchName, undefined, interaction.guild);
-    if (!permCheck.allowed) continue;
-
     try {
       const requests = await robloxAPI.getJoinRequests(groupId, ROBLOX_COOKIE);
       if (requests && requests.some(r => r.requester?.userId === userId)) {
