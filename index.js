@@ -455,6 +455,15 @@ function cleanExpiredVerifications() {
 
 const commands = [
   new SlashCommandBuilder()
+    .setName('grup-listele')
+    .setDescription('Roblox kullanıcısının üye olduğu tüm grupları listeler')
+    .addStringOption(option =>
+      option.setName('kişi')
+        .setDescription('Roblox kullanıcı adı')
+        .setRequired(true)
+    ),
+
+  new SlashCommandBuilder()
     .setName('rütbe-sorgu')
     .setDescription('Kullanıcının Roblox grubundaki rütbesini sorgular')
     .addStringOption(option =>
@@ -1811,22 +1820,34 @@ async function handleGroupList(interaction) {
   const userId = await robloxAPI.getUserIdByUsername(targetNick);
   if (!userId) return interaction.editReply({ embeds: [createErrorEmbed('Kullanıcı bulunamadı!')] });
 
-  const gCfg = getGuildConfig(interaction.guild);
-  const groups = [gCfg.groupId, ...Object.values(gCfg.branchGroups)].filter(id => id && id !== 'GRUP_ID_BURAYA');
-  const results = [];
-  
-  for (const gid of groups) {
-    const rank = await robloxAPI.getUserRankInGroup(userId, gid);
-    if (rank && rank.rank > 0) {
-      results.push(`**ID ${gid}:** ${rank.name} (${rank.rank})`);
+  const groups = await robloxAPI.getUserGroups(userId);
+  if (!groups) return interaction.editReply({ embeds: [createErrorEmbed('Grup bilgileri alınamadı!')] });
+  if (groups.length === 0) return interaction.editReply({ embeds: [createErrorEmbed('Bu kullanıcı hiçbir gruba üye değil.')] });
+
+  const lines = groups.map((g, i) => `**${i + 1}. ${g.groupName}**\n${g.roleName}`);
+
+  // Discord embed 4096 karakter sınırı — çok fazla grup varsa böl
+  const chunks = [];
+  let current = '';
+  for (const line of lines) {
+    if ((current + '\n\n' + line).length > 4000) {
+      chunks.push(current);
+      current = line;
+    } else {
+      current = current ? current + '\n\n' + line : line;
     }
   }
+  if (current) chunks.push(current);
 
-  const embed = new EmbedBuilder()
-    .setTitle(`${targetNick} - Grup Listesi`)
-    .setDescription(results.length > 0 ? results.join('\n') : 'Hiçbir kayıtlı grupta bulunamadı.')
-    .setColor(0x2B2D31);
-  await interaction.editReply({ embeds: [embed] });
+  const embeds = chunks.map((chunk, i) => {
+    const embed = new EmbedBuilder()
+      .setDescription(chunk)
+      .setColor(0x2B2D31);
+    if (i === 0) embed.setTitle(`${targetNick} — Grup Listesi (${groups.length} grup)`);
+    return embed;
+  });
+
+  await interaction.editReply({ embeds: embeds.slice(0, 10) });
 }
 
 async function handleDemote(interaction) {
