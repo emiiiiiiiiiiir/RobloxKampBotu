@@ -251,139 +251,71 @@ async function sendRankChangeWebhook(data) {
   if (!config.webhookUrl || config.webhookUrl === 'WEBHOOK_URL_BURAYA') {
     return;
   }
-  
+
   try {
-    const embed = {
-      title: data.type === 'change' ? 'Rütbe Değişikliği' : 
-             data.type === 'promotion' ? 'Terfi' : 
-             data.type === 'demotion' ? 'Tenzil' : 
-             'Branş Rütbe Değişikliği',
-      color: data.type === 'promotion' ? 0x57F287 : 
-             data.type === 'demotion' ? 0xED4245 : 
-             0x5865F2,
-      fields: [
-        {
-          name: 'Hedef Kullanıcı',
-          value: data.targetUser,
-          inline: true
-        },
-        {
-          name: 'İşlemi Yapan',
-          value: `${data.manager} (${data.managerRank})`,
-          inline: true
-        },
-        {
-          name: '\u200b',
-          value: '\u200b',
-          inline: true
-        }
-      ],
-      timestamp: new Date().toISOString(),
-      footer: {
-        text: 'Rütbe Log Sistemi'
-      }
-    };
-    
-    if (data.oldRank) {
-      embed.fields.push({
-        name: 'Eski Rütbe',
-        value: data.oldRank,
-        inline: true
-      });
-    }
-    
-    embed.fields.push({
-      name: 'Yeni Rütbe',
-      value: data.newRank,
-      inline: true
-    });
-    
-    if (data.branch) {
-      embed.fields.push({
-        name: 'Branş',
-        value: data.branch,
-        inline: true
-      });
-    }
-    
+    const title = data.type === 'promotion' ? 'Terfi Yapıldı' :
+                  data.type === 'demotion'  ? 'Tenzil Yapıldı' :
+                  data.type === 'branch_change' ? 'Branş Rütbe Değişikliği Yapıldı' :
+                  'Rütbe Değişikliği Yapıldı';
+
+    const color = data.type === 'promotion' ? 0x57F287 :
+                  data.type === 'demotion'  ? 0xED4245 :
+                  0x5865F2;
+
+    const branchPart = data.branch ? ` (${data.branch} branşında)` : '';
+    const rankPart = data.oldRank
+      ? `**${data.oldRank}** → **${data.newRank}**`
+      : `**${data.newRank}**`;
+
+    let description = `**${data.manager}**, **${data.targetUser}** kişisinin rütbesini${branchPart} ${rankPart} olarak değiştirmiştir.`;
+
     if (data.reason) {
-      embed.fields.push({
-        name: 'Sebep',
-        value: data.reason,
-        inline: false
-      });
+      description += `\n\n**Sebep:** ${data.reason}`;
     }
-    
-    await axios.post(config.webhookUrl, {
-      embeds: [embed]
-    });
+
+    const embed = {
+      title,
+      description,
+      color,
+      timestamp: new Date().toISOString(),
+      footer: { text: 'Imperial Forces / emir_1881' }
+    };
+
+    await axios.post(config.webhookUrl, { embeds: [embed] });
   } catch (error) {
     console.error('Webhook gönderim hatası:', error.message);
   }
 }
 
 async function sendBranchRequestWebhook(data) {
-  const webhookUrl = config.branchWebhookUrl && config.branchWebhookUrl !== 'WEBHOOK_URL_BURAYA' 
-    ? config.branchWebhookUrl 
+  const webhookUrl = config.branchWebhookUrl && config.branchWebhookUrl !== 'WEBHOOK_URL_BURAYA'
+    ? config.branchWebhookUrl
     : config.webhookUrl;
-    
+
   if (!webhookUrl || webhookUrl === 'WEBHOOK_URL_BURAYA') {
     return;
   }
-  
+
   try {
-    const embed = {
-      title: data.decision === 'kabul' ? 'Branş İsteği Kabul Edildi' : 'Branş İsteği Reddedildi',
-      color: data.decision === 'kabul' ? 0x57F287 : 0xED4245,
-      fields: [
-        {
-          name: 'Hedef Kullanıcı',
-          value: data.targetUser,
-          inline: true
-        },
-        {
-          name: 'İşlemi Yapan',
-          value: `${data.manager} (${data.managerRank})`,
-          inline: true
-        },
-        {
-          name: '\u200b',
-          value: '\u200b',
-          inline: true
-        },
-        {
-          name: 'Branş',
-          value: data.branch,
-          inline: true
-        },
-        {
-          name: 'Karar',
-          value: data.decision === 'kabul' ? 'Kabul Edildi' : 'Reddedildi',
-          inline: true
-        },
-        {
-          name: '\u200b',
-          value: '\u200b',
-          inline: true
-        }
-      ],
-      timestamp: new Date().toISOString(),
-      footer: {
-        text: 'Branş İstek Log Sistemi'
-      }
-    };
-    
+    const kabulMu = data.decision === 'kabul';
+    const title = kabulMu ? 'Branş İsteği Kabul Edildi' : 'Branş İsteği Reddedildi';
+    const color = kabulMu ? 0x57F287 : 0xED4245;
+
+    let description = `**${data.manager}**, **${data.targetUser}** kişisinin **${data.branch}** branş isteğini ${kabulMu ? 'kabul etmiştir' : 'reddetmiştir'}.`;
+
     if (data.reason) {
-      embed.fields.push({
-        name: 'Sebep',
-        value: data.reason,
-        inline: false
-      });
+      description += `\n\n**Sebep:** ${data.reason}`;
     }
-    
-    await axios.post(webhookUrl, {
-      embeds: [embed]
-    });
+
+    const embed = {
+      title,
+      description,
+      color,
+      timestamp: new Date().toISOString(),
+      footer: { text: 'Imperial Forces / emir_1881' }
+    };
+
+    await axios.post(webhookUrl, { embeds: [embed] });
   } catch (error) {
     console.error('Webhook gönderim hatası:', error.message);
   }
