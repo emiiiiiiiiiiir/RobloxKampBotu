@@ -2967,7 +2967,7 @@ client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
   const content = message.content.trim().toLowerCase();
   if (content === 'sa' || content === 'selamün aleykum') {
-    message.channel.send('Aleyküm selam, hoş geldin!').catch(() => {});
+    message.channel.send('Aleyküm selam,hoş geldin!').catch(() => {});
   }
 });
 
