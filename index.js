@@ -14,10 +14,16 @@ const {
   ActivityType
 } = require('discord.js');
 const { joinVoiceChannel } = require('@discordjs/voice');
-const config = require('./config.json');
-const robloxAPI = require('./src/roblox');
 const fs = require('fs');
 const axios = require('axios');
+const robloxAPI = require('./src/roblox');
+
+function loadConfig() {
+  const raw = fs.readFileSync('./config.json', 'utf8');
+  const fixed = raw.replace(/,\s*([}\]])/g, '$1');
+  return JSON.parse(fixed);
+}
+const config = loadConfig();
 
 const client = new Client({
   intents: [

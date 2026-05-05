@@ -21,8 +21,8 @@
     "AS.İZ": 115,
     "HKK": 135
   },
-  "webhookUrl": "",
-  "branchWebhookUrl": "",
+  "webhookUrl": "https://discord.com/api/webhooks/1501272627954847918/s2t5-ueahGR7MFfu_SQJDXhAtl6LvRoS0dJkdRQ7YrEZ_jqLQoEPLp3LbezlogiWLKPY",
+  "branchWebhookUrl": "https://discord.com/api/webhooks/1501272630659911722/FkyjNie90W4hEfTR0bPQlRrZ9JWdMSrcbOW1A1tBG8kIH49Ly3SRpycpQOAC2-0leZSp",
   "ticketCategoryId": "",
   "ticketLogChannelId": "",
   "supportRoleIds": [""],
