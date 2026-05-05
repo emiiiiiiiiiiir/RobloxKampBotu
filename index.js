@@ -690,6 +690,34 @@ const commands = [
         .setDescription('Af sebebi')
         .setRequired(false)
     ),
+
+  new SlashCommandBuilder()
+    .setName('sustur')
+    .setDescription('Belirtilen kullanıcıya zamanaşımı uygular')
+    .addUserOption(option =>
+      option.setName('kişi')
+        .setDescription('Susturulacak kullanıcı')
+        .setRequired(true)
+    )
+    .addStringOption(option =>
+      option.setName('zaman')
+        .setDescription('Süre (örn: 10s, 5d, 1h, 30m)')
+        .setRequired(true)
+    )
+    .addStringOption(option =>
+      option.setName('sebep')
+        .setDescription('Susturma sebebi')
+        .setRequired(true)
+    ),
+
+  new SlashCommandBuilder()
+    .setName('susturma-kaldır')
+    .setDescription('Kullanıcının zamanaşımını kaldırır')
+    .addUserOption(option =>
+      option.setName('kişi')
+        .setDescription('Zamanaşımı kaldırılacak kullanıcı')
+        .setRequired(true)
+    ),
 ].map(command => command.toJSON());
 
 console.log('=== Discord Bot Başlatılıyor ===\n');
@@ -842,6 +870,12 @@ client.on('interactionCreate', async (interaction) => {
           break;
         case 'ban-affı':
           await handleBanAmnesty(interaction);
+          break;
+        case 'sustur':
+          await handleSustur(interaction);
+          break;
+        case 'susturma-kaldır':
+          await handleSusuturmaKaldir(interaction);
           break;
       }
     } catch (error) {
@@ -2170,6 +2204,83 @@ async function handleBanAmnesty(interaction) {
     .setTimestamp();
 
   await interaction.editReply({ embeds: [embed] });
+}
+
+function parseSure(str) {
+  const match = str.trim().match(/^(\d+)(s|m|h|g|d)$/i);
+  if (!match) return null;
+  const val = parseInt(match[1]);
+  const unit = match[2].toLowerCase();
+  const ms = unit === 's' ? val * 1000 :
+              unit === 'm' ? val * 60 * 1000 :
+              unit === 'h' ? val * 3600 * 1000 :
+              val * 86400 * 1000; // g veya d
+  return ms;
+}
+
+async function handleSustur(interaction) {
+  const hasAdminRole = getGuildConfig(interaction.guild).adminRoleIds.some(idStr =>
+    idStr.split(',').map(s => s.trim()).some(id => interaction.member.roles.cache.has(id))
+  );
+  if (!hasAdminRole) {
+    return interaction.reply({ embeds: [createErrorEmbed('Bu komutu kullanma yetkiniz yok!')], flags: 64 });
+  }
+
+  await interaction.deferReply();
+
+  const hedef = interaction.options.getUser('kişi');
+  const zamanStr = interaction.options.getString('zaman');
+  const sebep = interaction.options.getString('sebep');
+
+  const ms = parseSure(zamanStr);
+  if (!ms) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Geçersiz süre formatı! Örnek: `10s`, `5m`, `2h`, `1g`')] });
+  }
+
+  if (ms > 28 * 24 * 3600 * 1000) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Maksimum susturma süresi 28 gündür!')] });
+  }
+
+  try {
+    const uye = await interaction.guild.members.fetch(hedef.id);
+    await uye.timeout(ms, sebep);
+
+    const embed = new EmbedBuilder()
+      .setDescription(`**${hedef.username}** kullanıcısı **${zamanStr}** süreyle susturuldu.\n\n**Sebep:** ${sebep}`)
+      .setColor(0xED4245)
+      .setTimestamp();
+
+    await interaction.editReply({ embeds: [embed] });
+  } catch (e) {
+    await interaction.editReply({ embeds: [createErrorEmbed(`Susturma işlemi başarısız! ${e.message}`)] });
+  }
+}
+
+async function handleSusuturmaKaldir(interaction) {
+  const hasAdminRole = getGuildConfig(interaction.guild).adminRoleIds.some(idStr =>
+    idStr.split(',').map(s => s.trim()).some(id => interaction.member.roles.cache.has(id))
+  );
+  if (!hasAdminRole) {
+    return interaction.reply({ embeds: [createErrorEmbed('Bu komutu kullanma yetkiniz yok!')], flags: 64 });
+  }
+
+  await interaction.deferReply();
+
+  const hedef = interaction.options.getUser('kişi');
+
+  try {
+    const uye = await interaction.guild.members.fetch(hedef.id);
+    await uye.timeout(null);
+
+    const embed = new EmbedBuilder()
+      .setDescription(`**${hedef.username}** kullanıcısının susturması kaldırıldı.`)
+      .setColor(0x57F287)
+      .setTimestamp();
+
+    await interaction.editReply({ embeds: [embed] });
+  } catch (e) {
+    await interaction.editReply({ embeds: [createErrorEmbed(`Susturma kaldırma başarısız! ${e.message}`)] });
+  }
 }
 
 async function handlePing(interaction) {
