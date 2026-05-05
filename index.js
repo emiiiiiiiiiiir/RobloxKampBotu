@@ -708,7 +708,7 @@ client.on('clientReady', async () => {
 
   const setStatus = () => {
     client.user.setPresence({
-      activities: [{ name: 'Imperial Forces', type: ActivityType.Watching }],
+      activities: [{ name: 'Imperial Forces Sunucularını İzliyor', type: ActivityType.Custom }],
       status: 'dnd'
     });
   };
