@@ -2250,7 +2250,7 @@ async function handlePing(interaction) {
 
 async function handleAnnouncement(interaction) {
   const ANNOUNCEMENT_GUILD_ID = '1500506349518323842';
-  const ANNOUNCEMENT_ROLE_IDS = ['1500512860403667075', '1500512590022049823', '15001278785998295192'];
+  const ANNOUNCEMENT_ROLE_IDS = ['1500512860403667075', '1500512590022049823', '15001278785998295192', '1500513256907739268', '1500512374615052375', '1500512537089806499'];
 
   const message = interaction.options.getString('mesaj');
   const channelName = interaction.options.getString('kanal_adi');
