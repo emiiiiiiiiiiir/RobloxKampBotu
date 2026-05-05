@@ -2963,6 +2963,12 @@ client.once('clientReady', () => {
   console.log(`Otomatik olarak "${channel.name}" ses kanalına bağlanıldı.`);
 });
 
-// PORT handling moved up to PORT_NUM section
-// End of file cleanup
+client.on('messageCreate', async (message) => {
+  if (message.author.bot) return;
+  const content = message.content.trim().toLowerCase();
+  if (content === 'sa' || content === 'selamün aleykum') {
+    message.channel.send('Aleyküm selam, hoş geldin!').catch(() => {});
+  }
+});
+
 client.login(DISCORD_TOKEN);
