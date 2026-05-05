@@ -1507,12 +1507,16 @@ async function checkBranchRankPermissions(discordUserId, branch, targetRank, gui
     };
   }
 
-  // Branş yönetici rütbe kontrolü (Örn: 10+ rütbe yönetebilir)
-  const minBranchManageRank = config.minBranchManageRank || 10;
+  // Branş yönetici rütbe kontrolü — her branş için ayrı ayrı ayarlanabilir
+  const branchManagerRanks = config.branchManagerRanks || {};
+  const minBranchManageRank =
+    (typeof branchManagerRanks === 'object' && !Array.isArray(branchManagerRanks))
+      ? (branchManagerRanks[branch] ?? config.minBranchManageRank ?? 10)
+      : (config.minBranchManageRank ?? 10);
   if (managerBranchRank.rank < minBranchManageRank) {
     return { 
       allowed: false, 
-      embed: createErrorEmbed(`${branch} branşında rütbe işlemi yapmak için yetkiniz yetersiz!`)
+      embed: createErrorEmbed(`${branch} branşında rütbe işlemi yapmak için yetkiniz yetersiz! (Gereken: ${minBranchManageRank}+)`)
     };
   }
 

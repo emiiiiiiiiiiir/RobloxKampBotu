@@ -13,8 +13,14 @@
     "AS.İZ": "820735175",
     "HKK": "774338962"
   },
-  "branchManagerRanks": [],
-  "minBranchManageRank": 140,
+  "branchManagerRanks": {
+    "DKK": 140,
+    "KKK": 140,
+    "ÖKK": 140,
+    "JGK": 140,
+    "AS.İZ": 140,
+    "HKK": 140
+  },
   "webhookUrl": "",
   "branchWebhookUrl": "",
   "ticketCategoryId": "",
