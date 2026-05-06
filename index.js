@@ -1853,7 +1853,7 @@ async function handleDemote(interaction) {
   if (!permissionCheck.allowed) return interaction.editReply({ embeds: [permissionCheck.embed] });
 
   if (targetUserId === permissionCheck.managerId) {
-    return interaction.editReply({ embeds: [createErrorEmbed('Kendinize tenzil işlemi yapamazsınız!')] });
+    return interaction.editReply({ embeds: [createErrorEmbed('Kendinize demote işlemi yapamazsınız!')] });
   }
 
   const targetRank = await robloxAPI.getUserRankInGroup(targetUserId, groupId);
