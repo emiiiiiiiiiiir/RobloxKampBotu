@@ -1127,24 +1127,28 @@ async function checkAccountSync(interaction) {
 
   // Resmi RoWifi API üzerinden kontrol
   if (rowifiToken && rowifiToken !== 'ROWIFI_API_TOKEN_BURAYA') {
-    try {
-      const response = await axios.get(`https://api.rowifi.xyz/v3/guilds/${guildId}/members/${discordUserId}`, {
-        headers: { 'Authorization': `Bot ${rowifiToken}` },
-        timeout: 5000
-      });
+    // Önce mevcut sunucu, sonra config'deki diğer sunucular denenir
+    const guildIdsToTry = [guildId, ...(config.rowifiGuildIds || []).filter(id => id !== guildId)];
 
-      if (response.data && response.data.roblox_id) {
-        const robloxInfo = await robloxAPI.getUserInfo(response.data.roblox_id);
-        if (robloxInfo) {
-          // Otomatik kaydet
-          const links = loadAccountLinks();
-          links[discordUserId] = robloxInfo.name;
-          saveAccountLinks(links);
-          return { username: robloxInfo.name, robloxId: response.data.roblox_id };
+    for (const tryGuildId of guildIdsToTry) {
+      try {
+        const response = await axios.get(`https://api.rowifi.xyz/v3/guilds/${tryGuildId}/members/${discordUserId}`, {
+          headers: { 'Authorization': `Bot ${rowifiToken}` },
+          timeout: 5000
+        });
+
+        if (response.data && response.data.roblox_id) {
+          const robloxInfo = await robloxAPI.getUserInfo(response.data.roblox_id);
+          if (robloxInfo) {
+            const links = loadAccountLinks();
+            links[discordUserId] = robloxInfo.name;
+            saveAccountLinks(links);
+            return { username: robloxInfo.name, robloxId: response.data.roblox_id };
+          }
         }
+      } catch (error) {
+        // Bu guild'de bulunamadı, sonrakini dene
       }
-    } catch (error) {
-      console.error('checkAccountSync RoWifi API hatası:', error.response?.data || error.message);
     }
   }
 
@@ -1167,47 +1171,50 @@ async function handleYenile(interaction) {
     });
   }
 
-  try {
-    const response = await axios.get(`https://api.rowifi.xyz/v3/guilds/${guildId}/members/${discordUserId}`, {
-      headers: { 'Authorization': `Bot ${rowifiToken}` },
-      timeout: 5000
-    });
+  const guildIdsToTry = [guildId, ...(config.rowifiGuildIds || []).filter(id => id !== guildId)];
+  let found = false;
 
-    if (response.data && response.data.roblox_id) {
-      const robloxInfo = await robloxAPI.getUserInfo(response.data.roblox_id);
-      if (!robloxInfo) {
-        return interaction.editReply({
-          embeds: [createErrorEmbed('Roblox kullanıcı bilgileri alınamadı.')]
-        });
-      }
-
-      const links = loadAccountLinks();
-      links[discordUserId] = robloxInfo.name;
-      saveAccountLinks(links);
-
-      const embed = new EmbedBuilder()
-        .setTitle('Hesap Yenilendi')
-        .setDescription(`RoWifi üzerinden bağlı hesabınız başarıyla algılandı ve güncellendi.`)
-        .addFields(
-          { name: 'Roblox Kullanıcı Adı', value: `\`${robloxInfo.name}\``, inline: true },
-          { name: 'Roblox ID', value: `\`${response.data.roblox_id}\``, inline: true },
-          { name: 'Discord ID', value: `\`${discordUserId}\``, inline: true }
-        )
-        .setThumbnail(`https://www.roblox.com/headshot-thumbnail/image?userId=${response.data.roblox_id}&width=420&height=420&format=png`)
-        .setColor(0x57F287)
-        .setTimestamp();
-
-      await interaction.editReply({ embeds: [embed] });
-    } else {
-      await interaction.editReply({
-        embeds: [createErrorEmbed('RoWifi üzerinde bağlı bir hesabınız bulunamadı. Lütfen önce RoWifi ile hesabınızı bağlayın.')]
+  for (const tryGuildId of guildIdsToTry) {
+    try {
+      const response = await axios.get(`https://api.rowifi.xyz/v3/guilds/${tryGuildId}/members/${discordUserId}`, {
+        headers: { 'Authorization': `Bot ${rowifiToken}` },
+        timeout: 5000
       });
+
+      if (response.data && response.data.roblox_id) {
+        const robloxInfo = await robloxAPI.getUserInfo(response.data.roblox_id);
+        if (!robloxInfo) {
+          return interaction.editReply({ embeds: [createErrorEmbed('Roblox kullanıcı bilgileri alınamadı.')] });
+        }
+
+        const links = loadAccountLinks();
+        links[discordUserId] = robloxInfo.name;
+        saveAccountLinks(links);
+
+        const embed = new EmbedBuilder()
+          .setTitle('Hesap Yenilendi')
+          .setDescription(`RoWifi üzerinden bağlı hesabınız başarıyla algılandı ve güncellendi.`)
+          .addFields(
+            { name: 'Roblox Kullanıcı Adı', value: `\`${robloxInfo.name}\``, inline: true },
+            { name: 'Roblox ID', value: `\`${response.data.roblox_id}\``, inline: true },
+            { name: 'Discord ID', value: `\`${discordUserId}\``, inline: true }
+          )
+          .setThumbnail(`https://www.roblox.com/headshot-thumbnail/image?userId=${response.data.roblox_id}&width=420&height=420&format=png`)
+          .setColor(0x57F287)
+          .setTimestamp();
+
+        await interaction.editReply({ embeds: [embed] });
+        found = true;
+        break;
+      }
+    } catch (error) {
+      // Bu guild'de bulunamadı, sonrakini dene
     }
-  } catch (error) {
-    console.error('Yenileme hatası:', error.response?.data || error.message);
-    const errorDetail = error.response?.status === 403 ? 'Yetki hatası (403). Lütfen API Token\'ın doğru sunucuya ait olduğundan ve geçerli olduğundan emin olun.' : 'RoWifi bilgileri alınırken bir hata oluştu.';
+  }
+
+  if (!found) {
     await interaction.editReply({
-      embeds: [createErrorEmbed(errorDetail)]
+      embeds: [createErrorEmbed('RoWifi üzerinde bağlı bir hesabınız bulunamadı. Lütfen önce RoWifi ile hesabınızı bağlayın.')]
     });
   }
 }
