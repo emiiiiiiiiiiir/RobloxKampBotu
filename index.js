@@ -1799,20 +1799,39 @@ async function handleBranchRequest(interaction) {
 async function handleGroupList(interaction) {
   await interaction.deferReply();
   const targetNick = interaction.options.getString('kişi');
-  const userId = await robloxAPI.getUserIdByUsername(targetNick);
+
+  const [userId, userInfo] = await Promise.all([
+    robloxAPI.getUserIdByUsername(targetNick),
+    robloxAPI.getUserIdByUsername(targetNick).then(id => id ? robloxAPI.getUserInfo(id) : null)
+  ]);
+
   if (!userId) return interaction.editReply({ embeds: [createErrorEmbed('Kullanıcı bulunamadı!')] });
 
   const groups = await robloxAPI.getUserGroups(userId);
   if (!groups) return interaction.editReply({ embeds: [createErrorEmbed('Grup bilgileri alınamadı!')] });
-  if (groups.length === 0) return interaction.editReply({ embeds: [createErrorEmbed('Bu kullanıcı hiçbir gruba üye değil.')] });
 
-  const lines = groups.map((g, i) => `**${i + 1}. ${g.groupName}**\n${g.roleName}`);
+  const discordUser = interaction.user;
+  const discordMember = interaction.member;
+  const discordName = discordMember?.displayName || discordUser.username;
 
-  // Discord embed 4096 karakter sınırı — çok fazla grup varsa böl
+  const createdDate = userInfo?.created
+    ? new Date(userInfo.created).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
+    : 'Bilinmiyor';
+
+  const robloxInfo = `**Roblox Hesabı**\nAd: ${targetNick}\nOluşturulma: ${createdDate}\nID: ${userId}`;
+
+  const grupLines = groups.length === 0
+    ? '*Hiçbir gruba üye değil.*'
+    : groups.map((g, i) => `**${i + 1}.** ${g.groupName}\n${g.roleName}`).join('\n\n');
+
+  const MAX = 4000;
+  const header = `**${discordName} (ID: ${discordUser.id})**\n\n${robloxInfo}\n\n**Grup Listesi (${groups.length})**\n`;
+
   const chunks = [];
   let current = '';
-  for (const line of lines) {
-    if ((current + '\n\n' + line).length > 4000) {
+  for (const line of (groups.length === 0 ? ['*Hiçbir gruba üye değil.*'] : groups.map((g, i) => `**${i + 1}.** ${g.groupName}\n${g.roleName}`))) {
+    const separator = current ? '\n\n' : '';
+    if ((header + current + separator + line).length > MAX) {
       chunks.push(current);
       current = line;
     } else {
@@ -1821,11 +1840,17 @@ async function handleGroupList(interaction) {
   }
   if (current) chunks.push(current);
 
+  const avatarUrl = `https://www.roblox.com/headshot-thumbnail/image?userId=${userId}&width=420&height=420&format=png`;
+
   const embeds = chunks.map((chunk, i) => {
-    const embed = new EmbedBuilder()
-      .setDescription(chunk)
-      .setColor(0x2B2D31);
-    if (i === 0) embed.setTitle(`${targetNick} — Grup Listesi (${groups.length} grup)`);
+    const embed = new EmbedBuilder().setColor(0x2B2D31);
+    if (i === 0) {
+      embed
+        .setDescription(`**${discordName} (ID: ${discordUser.id})**\n\n${robloxInfo}\n\n**Grup Listesi (${groups.length})**\n\n${chunk}`)
+        .setThumbnail(avatarUrl);
+    } else {
+      embed.setDescription(chunk);
+    }
     return embed;
   });
 
