@@ -754,17 +754,33 @@ client.on('clientReady', async () => {
   
   console.log('\nSlash komutları kaydediliyor...');
   
+  // Branş sunucularında sadece bu komutlar görünür
+  const branchKomutlari = new Set([
+    'yenile', 'grup-listele', 'rütbe-sorgu', 'ping',
+    'branş-aktiflik-sorgu', 'ittifak-branş-aktiflik',
+    'branştan-at', 'branş-istek', 'branş-istek-sorgu',
+    'branş-rütbe-sorgu', 'branş-rütbe-değiştir',
+    'demote', 'sustur', 'susturma-kaldır'
+  ]);
+
+  const branchSunucuIds = new Set(config.branchSunucuIds || []);
+
+  const anaKomutlar = commands;
+  const branchKomutlarJson = commands.filter(c => branchKomutlari.has(c.name));
+
   const guilds = client.guilds.cache;
   let successCount = 0;
   let failCount = 0;
-  
+
   for (const [guildId, guild] of guilds) {
     try {
+      const body = branchSunucuIds.has(guildId) ? branchKomutlarJson : anaKomutlar;
       await rest.put(
         Routes.applicationGuildCommands(DISCORD_CLIENT_ID, guildId),
-        { body: commands }
+        { body }
       );
-      console.log(`✓ ${guild.name} sunucusuna komutlar kaydedildi`);
+      const tip = branchSunucuIds.has(guildId) ? '[BRANŞ]' : '[ANA]';
+      console.log(`✓ ${tip} ${guild.name} sunucusuna komutlar kaydedildi`);
       successCount++;
     } catch (error) {
       console.error(`✗ ${guild.name} sunucusuna komut kaydı hatası:`, error.message);

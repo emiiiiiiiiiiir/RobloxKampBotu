@@ -30,11 +30,12 @@
   "ticketImageUrl": "",
   "autoVoiceChannelId": "1500611892442300576",
   "autoVoiceGuildId": "1135337987006287893",
+  "branchSunucuIds": [],
   "atf": {
     "groupId": "279222901",
     "gameId": "",
     "adminRoleIds": [""],
-    "rankYetkiliRutbeler": [160, 165, 170, 155, 150, 253, 255],
+    "rankYetkiliRutbeler": [160, 165, 170, 155, 253, 255],
     "branchGroups": {
       "ÖKK": "702077670",
       "DKK": "1095945595",
