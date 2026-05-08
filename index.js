@@ -1851,54 +1851,77 @@ async function handleGroupList(interaction) {
   await interaction.deferReply();
   const targetNick = interaction.options.getString('kişi');
 
-  const [userId, userInfo] = await Promise.all([
-    robloxAPI.getUserIdByUsername(targetNick),
-    robloxAPI.getUserIdByUsername(targetNick).then(id => id ? robloxAPI.getUserInfo(id) : null)
-  ]);
-
+  const userId = await robloxAPI.getUserIdByUsername(targetNick);
   if (!userId) return interaction.editReply({ embeds: [createErrorEmbed('Kullanıcı bulunamadı!')] });
 
-  const groups = await robloxAPI.getUserGroups(userId);
+  const [userInfo, groups] = await Promise.all([
+    robloxAPI.getUserInfo(userId),
+    robloxAPI.getUserGroups(userId)
+  ]);
   if (!groups) return interaction.editReply({ embeds: [createErrorEmbed('Grup bilgileri alınamadı!')] });
 
-  const discordUser = interaction.user;
-  const discordMember = interaction.member;
-  const discordName = discordMember?.displayName || discordUser.username;
+  // Sorgulanan kişinin Discord hesabını account_links üzerinden bul
+  const links = loadAccountLinks();
+  const linkedDiscordId = Object.entries(links).find(([, rbxName]) =>
+    rbxName?.toLowerCase() === targetNick.toLowerCase()
+  )?.[0] || null;
+
+  let targetDiscordMember = null;
+  if (linkedDiscordId) {
+    try {
+      targetDiscordMember = await interaction.guild.members.fetch(linkedDiscordId);
+    } catch (_) {}
+  }
 
   const createdDate = userInfo?.created
     ? new Date(userInfo.created).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
     : 'Bilinmiyor';
 
-  const robloxInfo = `**Roblox Hesabı**\nAd: ${targetNick}\nOluşturulma: ${createdDate}\nID: ${userId}`;
+  const avatarUrl = `https://www.roblox.com/headshot-thumbnail/image?userId=${userId}&width=420&height=420&format=png`;
 
-  const grupLines = groups.length === 0
-    ? '*Hiçbir gruba üye değil.*'
-    : groups.map((g, i) => `**${i + 1}.** ${g.groupName}\n${g.roleName}`).join('\n\n');
+  // Discord bilgi satırı
+  let discordLine = 'Bağlı hesap bulunamadı';
+  if (targetDiscordMember) {
+    const dUser = targetDiscordMember.user;
+    const dName = targetDiscordMember.displayName !== dUser.username
+      ? `${targetDiscordMember.displayName} (${dUser.username})`
+      : dUser.username;
+    discordLine = `${dName} — \`${dUser.id}\``;
+  }
 
-  const MAX = 4000;
-  const header = `**${discordName} (ID: ${discordUser.id})**\n\n${robloxInfo}\n\n**Grup Listesi (${groups.length})**\n`;
+  // Grup listesi için satırlar
+  const groupLines = groups.length === 0
+    ? ['Hiçbir gruba üye değil.']
+    : groups.map((g, i) => `**${i + 1}.** ${g.groupName}\n${' '.repeat(4)}${g.roleName}`);
+
+  const MAX = 3800;
+  const headerText = `**Roblox:** ${userInfo?.displayName || targetNick} (\`${targetNick}\`) — \`${userId}\`\n**Kayıt:** ${createdDate}\n**Discord:** ${discordLine}\n\n**Gruplar (${groups.length})**\n`;
 
   const chunks = [];
   let current = '';
-  for (const line of (groups.length === 0 ? ['*Hiçbir gruba üye değil.*'] : groups.map((g, i) => `**${i + 1}.** ${g.groupName}\n${g.roleName}`))) {
-    const separator = current ? '\n\n' : '';
-    if ((header + current + separator + line).length > MAX) {
+  for (const line of groupLines) {
+    const sep = current ? '\n' : '';
+    if ((headerText + current + sep + line).length > MAX) {
       chunks.push(current);
       current = line;
     } else {
-      current = current ? current + '\n\n' + line : line;
+      current = current ? current + '\n' + line : line;
     }
   }
   if (current) chunks.push(current);
-
-  const avatarUrl = `https://www.roblox.com/headshot-thumbnail/image?userId=${userId}&width=420&height=420&format=png`;
+  if (chunks.length === 0) chunks.push('Hiçbir gruba üye değil.');
 
   const embeds = chunks.map((chunk, i) => {
-    const embed = new EmbedBuilder().setColor(0x2B2D31);
+    const embed = new EmbedBuilder()
+      .setColor(0x5865F2)
+      .setThumbnail(avatarUrl);
+
     if (i === 0) {
       embed
-        .setDescription(`**${discordName} (ID: ${discordUser.id})**\n\n${robloxInfo}\n\n**Grup Listesi (${groups.length})**\n\n${chunk}`)
-        .setThumbnail(avatarUrl);
+        .setTitle(`${userInfo?.displayName || targetNick} — Grup Listesi`)
+        .setDescription(`${headerText}${chunk}`)
+        .setFooter({ text: `Sorgulayan: ${interaction.member?.displayName || interaction.user.username}` })
+        .setTimestamp();
     } else {
       embed.setDescription(chunk);
     }
