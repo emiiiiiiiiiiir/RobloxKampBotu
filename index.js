@@ -806,26 +806,53 @@ client.on('interactionCreate', async (interaction) => {
       }
 
       if (commandName !== 'yenile') {
-        const linkedUsername = getLinkedRobloxUsername(interaction.user.id);
-        if (!linkedUsername) {
+        const discordUserId = interaction.user.id;
+        const rowifiToken = process.env.ROWIFI_API_TOKEN;
+        const guildCfg = getGuildConfig(interaction.guild);
+
+        // RoWifi'den Roblox ID'yi çek
+        let robloxId = null;
+        if (rowifiToken && rowifiToken !== 'ROWIFI_API_TOKEN_BURAYA') {
+          const guildIdsToTry = [interaction.guildId, ...(config.rowifiGuildIds || []).filter(id => id !== interaction.guildId)];
+          for (const tryGuildId of guildIdsToTry) {
+            try {
+              const response = await axios.get(`https://api.rowifi.xyz/v3/guilds/${tryGuildId}/members/${discordUserId}`, {
+                headers: { 'Authorization': `Bot ${rowifiToken}` },
+                timeout: 5000
+              });
+              if (response.data && response.data.roblox_id) {
+                robloxId = response.data.roblox_id;
+                break;
+              }
+            } catch (_) {}
+          }
+        }
+
+        // RoWifi'de bulunamadıysa local cache'e bak
+        if (!robloxId) {
+          const linkedUsername = getLinkedRobloxUsername(discordUserId);
+          if (linkedUsername) {
+            robloxId = await robloxAPI.getUserIdByUsername(linkedUsername);
+          }
+        }
+
+        // Hiç Roblox ID bulunamadı → hesap bağlı değil
+        if (!robloxId) {
           await interaction.reply({
-            embeds: [createErrorEmbed('Roblox hesabınız bağlı değil. Önce `/yenile` komutunu kullanarak hesabınızı bağlayın.')],
+            embeds: [createErrorEmbed('Roblox hesabınız bağlı değil. Önce `/yenile` komutunu kullanarak RoWifi üzerinden hesabınızı bağlayın.')],
             flags: 64
           });
           return;
         }
 
-        const guildCfg = getGuildConfig(interaction.guild);
-        const robloxId = await robloxAPI.getUserIdByUsername(linkedUsername);
-        if (robloxId) {
-          const rankInfo = await robloxAPI.getUserRankInGroup(robloxId, guildCfg.groupId);
-          if (!rankInfo || rankInfo.rank === 0) {
-            await interaction.reply({
-              embeds: [createErrorEmbed('Ana grupta yer almadığınız için bu komutu kullanamazsınız. Gruba katıldıktan sonra `/yenile` komutunu kullanın.')],
-              flags: 64
-            });
-            return;
-          }
+        // Ana grupta üyelik kontrolü
+        const rankInfo = await robloxAPI.getUserRankInGroup(robloxId, guildCfg.groupId);
+        if (!rankInfo || rankInfo.rank === 0) {
+          await interaction.reply({
+            embeds: [createErrorEmbed('Ana grupta yer almadığınız için bu komutu kullanamazsınız. Gruba katıldıktan sonra `/yenile` komutunu kullanın.')],
+            flags: 64
+          });
+          return;
         }
       }
 
