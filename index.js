@@ -805,6 +805,30 @@ client.on('interactionCreate', async (interaction) => {
         return;
       }
 
+      if (commandName !== 'yenile') {
+        const linkedUsername = getLinkedRobloxUsername(interaction.user.id);
+        if (!linkedUsername) {
+          await interaction.reply({
+            embeds: [createErrorEmbed('Roblox hesabınız bağlı değil. Önce `/yenile` komutunu kullanarak hesabınızı bağlayın.')],
+            flags: 64
+          });
+          return;
+        }
+
+        const guildCfg = getGuildConfig(interaction.guild);
+        const robloxId = await robloxAPI.getUserIdByUsername(linkedUsername);
+        if (robloxId) {
+          const rankInfo = await robloxAPI.getUserRankInGroup(robloxId, guildCfg.groupId);
+          if (!rankInfo || rankInfo.rank === 0) {
+            await interaction.reply({
+              embeds: [createErrorEmbed('Ana grupta yer almadığınız için bu komutu kullanamazsınız. Gruba katıldıktan sonra `/yenile` komutunu kullanın.')],
+              flags: 64
+            });
+            return;
+          }
+        }
+      }
+
       switch (commandName) {
         case 'rütbe-sorgu':
           await handleRankQuery(interaction);
