@@ -3141,4 +3141,15 @@ client.on('messageCreate', async (message) => {
   }
 });
 
-client.login(DISCORD_TOKEN);
+process.on('unhandledRejection', (error) => {
+  console.error('Yakalanmayan hata:', error);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Kritik hata:', error);
+});
+
+client.login(DISCORD_TOKEN).catch(error => {
+  console.error('Discord giriş hatası:', error.message);
+  process.exit(1);
+});
