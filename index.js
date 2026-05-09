@@ -806,50 +806,10 @@ client.on('interactionCreate', async (interaction) => {
       }
 
       if (commandName !== 'yenile') {
-        const discordUserId = interaction.user.id;
-        const rowifiToken = process.env.ROWIFI_API_TOKEN;
-        const guildCfg = getGuildConfig(interaction.guild);
-
-        // RoWifi'den Roblox ID'yi çek
-        let robloxId = null;
-        if (rowifiToken && rowifiToken !== 'ROWIFI_API_TOKEN_BURAYA') {
-          const guildIdsToTry = [interaction.guildId, ...(config.rowifiGuildIds || []).filter(id => id !== interaction.guildId)];
-          for (const tryGuildId of guildIdsToTry) {
-            try {
-              const response = await axios.get(`https://api.rowifi.xyz/v3/guilds/${tryGuildId}/members/${discordUserId}`, {
-                headers: { 'Authorization': `Bot ${rowifiToken}` },
-                timeout: 5000
-              });
-              if (response.data && response.data.roblox_id) {
-                robloxId = response.data.roblox_id;
-                break;
-              }
-            } catch (_) {}
-          }
-        }
-
-        // RoWifi'de bulunamadıysa local cache'e bak
-        if (!robloxId) {
-          const linkedUsername = getLinkedRobloxUsername(discordUserId);
-          if (linkedUsername) {
-            robloxId = await robloxAPI.getUserIdByUsername(linkedUsername);
-          }
-        }
-
-        // Hiç Roblox ID bulunamadı → hesap bağlı değil
-        if (!robloxId) {
+        const linkedUsername = getLinkedRobloxUsername(interaction.user.id);
+        if (!linkedUsername) {
           await interaction.reply({
-            embeds: [createErrorEmbed('Roblox hesabınız bağlı değil. Önce `/yenile` komutunu kullanarak RoWifi üzerinden hesabınızı bağlayın.')],
-            flags: 64
-          });
-          return;
-        }
-
-        // Ana grupta üyelik kontrolü
-        const rankInfo = await robloxAPI.getUserRankInGroup(robloxId, guildCfg.groupId);
-        if (!rankInfo || rankInfo.rank === 0) {
-          await interaction.reply({
-            embeds: [createErrorEmbed('Ana grupta yer almadığınız için bu komutu kullanamazsınız. Gruba katıldıktan sonra `/yenile` komutunu kullanın.')],
+            embeds: [createErrorEmbed('Roblox hesabınız doğrulanmamış. Önce `/yenile` komutunu kullanarak hesabınızı bağlayın.')],
             flags: 64
           });
           return;
@@ -1233,9 +1193,19 @@ async function handleYenile(interaction) {
       });
 
       if (response.data && response.data.roblox_id) {
-        const robloxInfo = await robloxAPI.getUserInfo(response.data.roblox_id);
+        const robloxId = response.data.roblox_id;
+        const robloxInfo = await robloxAPI.getUserInfo(robloxId);
         if (!robloxInfo) {
           return interaction.editReply({ embeds: [createErrorEmbed('Roblox kullanıcı bilgileri alınamadı.')] });
+        }
+
+        // Ana grupta üyelik kontrolü
+        const guildCfg = getGuildConfig(interaction.guild);
+        const rankInfo = await robloxAPI.getUserRankInGroup(robloxId, guildCfg.groupId);
+        if (!rankInfo || rankInfo.rank === 0) {
+          return interaction.editReply({
+            embeds: [createErrorEmbed(`**${robloxInfo.name}** adlı hesabınız ana grupta bulunamadı. Gruba katıldıktan sonra tekrar deneyin.`)]
+          });
         }
 
         const links = loadAccountLinks();
@@ -1247,10 +1217,10 @@ async function handleYenile(interaction) {
           .setDescription(`RoWifi üzerinden bağlı hesabınız başarıyla algılandı ve güncellendi.`)
           .addFields(
             { name: 'Roblox Kullanıcı Adı', value: `\`${robloxInfo.name}\``, inline: true },
-            { name: 'Roblox ID', value: `\`${response.data.roblox_id}\``, inline: true },
-            { name: 'Discord ID', value: `\`${discordUserId}\``, inline: true }
+            { name: 'Roblox ID', value: `\`${robloxId}\``, inline: true },
+            { name: 'Grup Rütbesi', value: `\`${rankInfo.name}\``, inline: true }
           )
-          .setThumbnail(`https://www.roblox.com/headshot-thumbnail/image?userId=${response.data.roblox_id}&width=420&height=420&format=png`)
+          .setThumbnail(`https://www.roblox.com/headshot-thumbnail/image?userId=${robloxId}&width=420&height=420&format=png`)
           .setColor(0x57F287)
           .setTimestamp();
 
