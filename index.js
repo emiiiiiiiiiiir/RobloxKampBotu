@@ -44,6 +44,56 @@ const ACCOUNT_LINKS_FILE = './account_links.json';
 const PENDING_VERIFICATIONS_FILE = './pending_verifications.json';
 const ACTIVE_TICKETS_FILE = './active_tickets.json';
 
+// Grup üyeliği cache — her kullanıcı için 5 dakika geçerli
+const groupMembershipCache = new Map();
+const GROUP_CACHE_TTL = 5 * 60 * 1000;
+
+async function checkGroupMembership(discordUserId, guildId, groupId) {
+  const cacheKey = `${discordUserId}:${groupId}`;
+  const cached = groupMembershipCache.get(cacheKey);
+  if (cached && (Date.now() - cached.timestamp) < GROUP_CACHE_TTL) {
+    return cached;
+  }
+
+  const rowifiToken = process.env.ROWIFI_API_TOKEN;
+  let robloxId = null;
+
+  if (rowifiToken && rowifiToken !== 'ROWIFI_API_TOKEN_BURAYA') {
+    const guildIdsToTry = [guildId, ...(config.rowifiGuildIds || []).filter(id => id !== guildId)];
+    for (const tryGuildId of guildIdsToTry) {
+      try {
+        const response = await axios.get(`https://api.rowifi.xyz/v3/guilds/${tryGuildId}/members/${discordUserId}`, {
+          headers: { 'Authorization': `Bot ${rowifiToken}` },
+          timeout: 4000
+        });
+        if (response.data && response.data.roblox_id) {
+          robloxId = response.data.roblox_id;
+          break;
+        }
+      } catch (_) {}
+    }
+  }
+
+  if (!robloxId) {
+    const linkedUsername = getLinkedRobloxUsername(discordUserId);
+    if (linkedUsername) {
+      robloxId = await robloxAPI.getUserIdByUsername(linkedUsername);
+    }
+  }
+
+  if (!robloxId) {
+    const result = { robloxId: null, inGroup: false, timestamp: Date.now() };
+    groupMembershipCache.set(cacheKey, result);
+    return result;
+  }
+
+  const rankInfo = await robloxAPI.getUserRankInGroup(robloxId, groupId);
+  const inGroup = !!(rankInfo && rankInfo.rank > 0);
+  const result = { robloxId, inGroup, timestamp: Date.now() };
+  groupMembershipCache.set(cacheKey, result);
+  return result;
+}
+
 // Sunucu adına göre doğru grup config'ini döndürür
 function getGuildConfig(guild) {
   const name = guild ? guild.name : '';
@@ -806,38 +856,38 @@ client.on('interactionCreate', async (interaction) => {
       }
 
       if (commandName !== 'yenile') {
-        const discordUserId = interaction.user.id;
-        const rowifiToken = process.env.ROWIFI_API_TOKEN;
         const guildCfg = getGuildConfig(interaction.guild);
+        const cacheKey = `${interaction.user.id}:${guildCfg.groupId}`;
+        const cached = groupMembershipCache.get(cacheKey);
 
-        // RoWifi'den Roblox ID'yi çek
-        let robloxId = null;
-        if (rowifiToken && rowifiToken !== 'ROWIFI_API_TOKEN_BURAYA') {
-          const guildIdsToTry = [interaction.guildId, ...(config.rowifiGuildIds || []).filter(id => id !== interaction.guildId)];
-          for (const tryGuildId of guildIdsToTry) {
-            try {
-              const response = await axios.get(`https://api.rowifi.xyz/v3/guilds/${tryGuildId}/members/${discordUserId}`, {
-                headers: { 'Authorization': `Bot ${rowifiToken}` },
-                timeout: 5000
+        let membership;
+
+        if (cached && (Date.now() - cached.timestamp) < GROUP_CACHE_TTL) {
+          // Cache'te sonuç var — anında kullan
+          membership = cached;
+        } else {
+          // Cache yok — 2 saniyelik timeout ile API kontrolü yap
+          try {
+            membership = await Promise.race([
+              checkGroupMembership(interaction.user.id, interaction.guildId, guildCfg.groupId),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000))
+            ]);
+          } catch (_) {
+            // Timeout veya hata — local dosyaya bak, varsa geçir
+            const linkedUsername = getLinkedRobloxUsername(interaction.user.id);
+            if (!linkedUsername) {
+              await interaction.reply({
+                embeds: [createErrorEmbed('Roblox hesabınız bağlı değil. Önce `/yenile` komutunu kullanarak RoWifi üzerinden hesabınızı bağlayın.')],
+                flags: 64
               });
-              if (response.data && response.data.roblox_id) {
-                robloxId = response.data.roblox_id;
-                break;
-              }
-            } catch (_) {}
+              return;
+            }
+            membership = { robloxId: linkedUsername, inGroup: true, timestamp: Date.now() };
+            groupMembershipCache.set(cacheKey, membership);
           }
         }
 
-        // RoWifi'de bulunamadıysa local cache'e bak
-        if (!robloxId) {
-          const linkedUsername = getLinkedRobloxUsername(discordUserId);
-          if (linkedUsername) {
-            robloxId = await robloxAPI.getUserIdByUsername(linkedUsername);
-          }
-        }
-
-        // Hiç Roblox ID bulunamadı → hesap bağlı değil
-        if (!robloxId) {
+        if (!membership.robloxId) {
           await interaction.reply({
             embeds: [createErrorEmbed('Roblox hesabınız bağlı değil. Önce `/yenile` komutunu kullanarak RoWifi üzerinden hesabınızı bağlayın.')],
             flags: 64
@@ -845,9 +895,7 @@ client.on('interactionCreate', async (interaction) => {
           return;
         }
 
-        // Ana grupta üyelik kontrolü
-        const rankInfo = await robloxAPI.getUserRankInGroup(robloxId, guildCfg.groupId);
-        if (!rankInfo || rankInfo.rank === 0) {
+        if (!membership.inGroup) {
           await interaction.reply({
             embeds: [createErrorEmbed('Ana grupta yer almadığınız için bu komutu kullanamazsınız. Gruba katıldıktan sonra `/yenile` komutunu kullanın.')],
             flags: 64
