@@ -77,22 +77,15 @@ function translateRobloxError(message) {
   if (!message) return 'Bilinmeyen hata';
   
   const translations = {
-    'You cannot manage this member': 'Bu kişiyi yönetme yetkin yok. (Cookie hesabının rütbesi yetersiz)',
-    'You cannot manage this member.': 'Bu kişiyi yönetme yetkin yok. (Cookie hesabının rütbesi yetersiz)',
-    'User is not in group': 'Kullanıcı grupta değil.',
-    'Invalid role': 'Geçersiz rütbe.',
-    'Authorization has been denied for this request': 'Cookie geçersiz veya süresi dolmuş.',
-    'Token Validation Failed': 'Cookie geçersiz veya süresi dolmuş.',
-    'The user is invalid or does not exist': 'Kullanıcı bulunamadı.',
-    'Group is locked': 'Grup kilitli.',
-    'Insufficient permissions': 'Yetki yetersiz.',
-    'User is already in the group': 'Kullanıcı zaten grupta.',
-    'User is banned': 'Kullanıcı gruptan yasaklı.',
-    'The group is full': 'Grup dolu.',
-    'User does not exist': 'Kullanıcı bulunamadı.',
-    'Bad Request': 'Geçersiz istek.',
-    'Internal Server Error': 'Roblox sunucu hatası.',
-    'Service Unavailable': 'Roblox şu an erişilemiyor.',
+    'You cannot manage this member': 'Bu kişiyi yönetme yetkiniz yok! (Cookie hesabının rütbesi yetersiz)',
+    'You cannot manage this member.': 'Bu kişiyi yönetme yetkiniz yok! (Cookie hesabının rütbesi yetersiz)',
+    'User is not in group': 'Kullanıcı grupta değil',
+    'Invalid role': 'Geçersiz rütbe',
+    'Authorization has been denied for this request': 'Cookie geçersiz veya süresi dolmuş',
+    'Token Validation Failed': 'Cookie geçersiz veya süresi dolmuş',
+    'The user is invalid or does not exist': 'Kullanıcı geçersiz veya mevcut değil',
+    'Group is locked': 'Grup kilitli',
+    'Insufficient permissions': 'Yetersiz yetki'
   };
   
   return translations[message] || message;
@@ -846,7 +839,7 @@ client.on('interactionCreate', async (interaction) => {
         // Hiç Roblox ID bulunamadı → hesap bağlı değil
         if (!robloxId) {
           await interaction.reply({
-            embeds: [createErrorEmbed('Roblox hesabın bağlı değil. Önce `/yenile` komutunu kullan.')],
+            embeds: [createErrorEmbed('Roblox hesabınız bağlı değil. Önce `/yenile` komutunu kullanarak RoWifi üzerinden hesabınızı bağlayın.')],
             flags: 64
           });
           return;
@@ -856,7 +849,7 @@ client.on('interactionCreate', async (interaction) => {
         const rankInfo = await robloxAPI.getUserRankInGroup(robloxId, guildCfg.groupId);
         if (!rankInfo || rankInfo.rank === 0) {
           await interaction.reply({
-            embeds: [createErrorEmbed('Ana grupta değilsin, bu komutu kullanamazsın. Gruba katıldıktan sonra `/yenile` komutunu kullan.')],
+            embeds: [createErrorEmbed('Ana grupta yer almadığınız için bu komutu kullanamazsınız. Gruba katıldıktan sonra `/yenile` komutunu kullanın.')],
             flags: 64
           });
           return;
@@ -962,11 +955,11 @@ client.on('interactionCreate', async (interaction) => {
       try {
         if (!interaction.replied && !interaction.deferred) {
           await interaction.reply({ 
-            content: 'Bir şeyler ters gitti, tekrar dene.', 
+            content: 'HATA: Bir hata oluştu!', 
             flags: 64
           });
         } else if (interaction.deferred || interaction.replied) {
-          await interaction.editReply({ embeds: [createErrorEmbed('Bir şeyler ters gitti.')] });
+          await interaction.editReply({ embeds: [createErrorEmbed('Bir hata oluştu!')] });
         }
       } catch (replyError) {
         if (replyError.code !== 10062) {
@@ -1035,7 +1028,7 @@ client.on('interactionCreate', async (interaction) => {
       }
     } catch (error) {
       console.error('Buton hatası:', error);
-      await interaction.reply({ content: 'Bir şeyler ters gitti.', flags: 64 }).catch(() => {});
+      await interaction.reply({ content: 'HATA: Bir hata oluştu!', flags: 64 }).catch(() => {});
     }
   }
   else if (interaction.isStringSelectMenu()) {
@@ -1045,7 +1038,7 @@ client.on('interactionCreate', async (interaction) => {
       }
     } catch (error) {
       console.error('Select menu hatası:', error);
-      await interaction.reply({ content: 'Bir şeyler ters gitti.', flags: 64 }).catch(() => {});
+      await interaction.reply({ content: 'HATA: Bir hata oluştu!', flags: 64 }).catch(() => {});
     }
   }
 });
@@ -1055,7 +1048,7 @@ async function handleTicketRating(interaction, rating, ticketOwnerId) {
   const ticketId = parts[4];
   
   if (interaction.user.id !== ticketOwnerId) {
-    return interaction.reply({ content: 'Sadece bilet sahibi puan verebilir.', flags: 64 });
+    return interaction.reply({ content: 'HATA: Sadece ticket sahibi puan verebilir!', flags: 64 });
   }
 
   const embed = new EmbedBuilder()
@@ -1091,7 +1084,7 @@ async function handleVerificationButton(interaction) {
   const verification = verifications[discordUserId];
 
   if (!verification) {
-    return interaction.editReply({ embeds: [createErrorEmbed('Bekleyen bir doğrulaman yok.')] });
+    return interaction.editReply({ embeds: [createErrorEmbed('Bekleyen bir doğrulama işleminiz bulunmuyor.')] });
   }
 
   const isVerified = await robloxAPI.verifyUserOwnership(verification.robloxId, verification.code);
@@ -1114,10 +1107,10 @@ async function handleVerificationButton(interaction) {
       
       await interaction.editReply({ embeds: [embed] });
     } else {
-      await interaction.editReply({ embeds: [createErrorEmbed('Hesap kaydedilemedi, tekrar dene.')] });
+      await interaction.editReply({ embeds: [createErrorEmbed('Hesap kaydedilirken bir hata oluştu!')] });
     }
   } else {
-    await interaction.editReply({ embeds: [createErrorEmbed('Doğrulama başarısız. Kodu Roblox profil açıklamanıza eklediğinden emin ol.')] });
+    await interaction.editReply({ embeds: [createErrorEmbed('Doğrulama başarısız! Lütfen kodu profil açıklamanıza eklediğinizden emin olun.')] });
   }
 }
 
@@ -1126,7 +1119,7 @@ async function checkRankPermissions(discordUserId, targetRank, guild) {
   if (!managerUsername) {
     return { 
       allowed: false, 
-      embed: createErrorEmbed('RoWifi hesabın bağlı değil ya da güncel değil. `/yenile` komutunu kullan.')
+      embed: createErrorEmbed('RoWifi ile hesabınızı doğrulamamışsınız veya bilgileriniz güncel değil. `/yenile` komutunu kullanarak bilgilerinizi güncelleyin.')
     };
   }
 
@@ -1134,7 +1127,7 @@ async function checkRankPermissions(discordUserId, targetRank, guild) {
   if (!managerId) {
     return { 
       allowed: false, 
-      embed: createErrorEmbed('Bağlı Roblox hesabı bulunamadı. `/yenile` komutunu kullan.')
+      embed: createErrorEmbed('Bağlı Roblox kullanıcısı bulunamadı! `/yenile` komutunu kullanın.')
     };
   }
 
@@ -1143,7 +1136,7 @@ async function checkRankPermissions(discordUserId, targetRank, guild) {
   if (!managerRank) {
     return { 
       allowed: false, 
-      embed: createErrorEmbed('Grupta olmayan biri rütbe işlemi yapamaz.')
+      embed: createErrorEmbed('Grupta olmayan kişiler rütbe işlemi yapamaz!')
     };
   }
 
@@ -1152,14 +1145,14 @@ async function checkRankPermissions(discordUserId, targetRank, guild) {
   if (!allowedRankValues.includes(managerRank.rank)) {
     return { 
       allowed: false, 
-      embed: createErrorEmbed(`Bu işlemi yapmak için yetkin yetersiz. (Rütben: ${managerRank.name} | Numara: ${managerRank.rank})`)
+      embed: createErrorEmbed(`Bu işlemi yapmak için yetkiniz yetersiz! (Rütbeniz: ${managerRank.name} | Numara: ${managerRank.rank})`)
     };
   }
 
   if (targetRank !== undefined && targetRank >= managerRank.rank && managerRank.rank !== 255) {
     return { 
       allowed: false, 
-      embed: createErrorEmbed(`Senden üst ya da aynı rütbedeki birine rütbe veremezsin.`)
+      embed: createErrorEmbed(`Sizden üst veya sizinle aynı rütbede olan birine rütbe veremezsiniz!`)
     };
   }
 
@@ -1211,7 +1204,7 @@ async function checkAccountSync(interaction) {
   }
 
   await interaction.editReply({ 
-    embeds: [createErrorEmbed('RoWifi hesabın bağlı değil ya da güncel değil. `/yenile` komutunu kullan.')]
+    embeds: [createErrorEmbed('RoWifi ile hesabınızı doğrulamamışsınız veya bilgileriniz güncel değil. `/yenile` komutunu kullanarak bilgilerinizi güncelleyin.')]
   });
   return null;
 }
@@ -1225,7 +1218,7 @@ async function handleYenile(interaction) {
 
   if (!rowifiToken || rowifiToken === 'ROWIFI_API_TOKEN_BURAYA') {
     return interaction.editReply({
-      embeds: [createErrorEmbed('RoWifi API Token tanımlanmamış. Yöneticiye bildir.')]
+      embeds: [createErrorEmbed('Sistemde RoWifi API Token tanımlanmamış. Lütfen yöneticiye başvurun.')]
     });
   }
 
