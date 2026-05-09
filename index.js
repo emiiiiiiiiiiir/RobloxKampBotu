@@ -1625,7 +1625,12 @@ async function handleBranchKick(interaction) {
   
   const targetNick = interaction.options.getString('kişi');
   const reason = interaction.options.getString('sebep');
-  
+
+  const myLinkedUsername = getLinkedRobloxUsername(interaction.user.id);
+  if (myLinkedUsername && targetNick.toLowerCase() === myLinkedUsername.toLowerCase()) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Kendinizi branştan atamazsınız!')] });
+  }
+
   const targetUserId = await robloxAPI.getUserIdByUsername(targetNick);
   if (!targetUserId) return interaction.editReply({ embeds: [createErrorEmbed('Hedef kullanıcı bulunamadı!')] });
 
@@ -2034,6 +2039,11 @@ async function handleGameBan(interaction) {
   const robloxNick = interaction.options.getString('kişi');
   const reason = interaction.options.getString('sebep');
 
+  const myLinkedUsername = getLinkedRobloxUsername(interaction.user.id);
+  if (myLinkedUsername && robloxNick.toLowerCase() === myLinkedUsername.toLowerCase()) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Kendinizi oyundan yasaklayamazsınız!')] });
+  }
+
   const userId = await robloxAPI.getUserIdByUsername(robloxNick);
   if (!userId) {
     return interaction.editReply({ embeds: [createErrorEmbed('Kullanıcı bulunamadı!')] });
@@ -2319,6 +2329,10 @@ async function handleSustur(interaction) {
   const hedef = interaction.options.getUser('kişi');
   const zamanStr = interaction.options.getString('zaman');
   const sebep = interaction.options.getString('sebep');
+
+  if (hedef.id === interaction.user.id) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Kendinizi susturamazsınız!')] });
+  }
 
   const ms = parseSure(zamanStr);
   if (!ms) {
@@ -2699,10 +2713,14 @@ async function handleBan(interaction) {
   }
   
   await interaction.deferReply();
-  
+
   const discordUserId = interaction.options.getString('kişi');
   const reason = interaction.options.getString('sebep');
-  
+
+  if (discordUserId === interaction.user.id) {
+    return interaction.editReply({ embeds: [createErrorEmbed('Kendinizi yasaklayamazsınız!')] });
+  }
+
   try {
     const user = await client.users.fetch(discordUserId);
     const guilds = client.guilds.cache;
