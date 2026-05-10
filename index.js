@@ -2596,6 +2596,7 @@ async function handleTicketCategorySelect(interaction) {
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId('close_ticket').setLabel('Ticket\'ı Kapat').setStyle(ButtonStyle.Danger),
+      new ButtonBuilder().setCustomId('claim_ticket').setLabel('Bileti Üstlen').setStyle(ButtonStyle.Success),
       new ButtonBuilder().setCustomId('add_user_to_ticket').setLabel('Kullanıcı Ekle').setStyle(ButtonStyle.Secondary)
     );
 
