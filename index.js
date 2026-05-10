@@ -2577,26 +2577,26 @@ async function handleTicketCategorySelect(interaction) {
     });
 
     const categoryInfo = {
-      'mod':          { emoji: '🛡️', title: 'Moderatör — Destek Talebi',      desc: `Merhaba ${user}, destek talebin kaydedildi. Sorununu detaylı şekilde yaz, ekip en kısa sürede ilgilenecek.` },
-      'gamepass':     { emoji: '🏆', title: 'Gamepass — Satın Alma Talebi',    desc: `Merhaba ${user}, gamepass alımı talebiniz kaydedildi. Almak istediğin paketi ve ödeme detaylarını yetkili ile paylaş.` },
-      'game_support': { emoji: '🎮', title: 'Oyun Destek — Destek Talebi',     desc: `Merhaba ${user}, oyun destek talebin kaydedildi. Yaşadığın sorunu mümkün olduğunca detaylı anlat, ekip en kısa sürede ilgilenecek.` },
-      'rank_support': { emoji: '⭐', title: 'Rütbe Destek — Destek Talebi',    desc: `Merhaba ${user}, rütbe destek talebin kaydedildi. Rütbenle ilgili yaşadığın sorunu detaylıca açıkla, yetkililer inceleyecek.` },
-      'report':       { emoji: '⚠️', title: 'Reklam Şikayet — Şikayet Talebi', desc: `Merhaba ${user}, şikayetin kaydedildi. Reklam yapan kişinin Discord/Roblox bilgilerini ve kanıtlarını paylaş.` },
-      'transfer':     { emoji: '🔄', title: 'Geri Dönüş — Geri Dönüş Talebi', desc: `Merhaba ${user}, geri dönüş talebin kaydedildi. Detayları yetkili ile paylaşabilirsin.` }
+      'mod':          { title: 'Moderatör — Destek Talebi',       desc: `Merhaba ${user}, destek talebin kaydedildi. Sorununu detaylı şekilde yaz, ekip en kısa sürede ilgilenecek.` },
+      'gamepass':     { title: 'Gamepass — Satın Alma Talebi',     desc: `Merhaba ${user}, gamepass alımı talebiniz kaydedildi. Almak istediğin paketi ve ödeme detaylarını yetkili ile paylaş.` },
+      'game_support': { title: 'Oyun Destek — Destek Talebi',      desc: `Merhaba ${user}, oyun destek talebin kaydedildi. Yaşadığın sorunu mümkün olduğunca detaylı anlat, ekip en kısa sürede ilgilenecek.` },
+      'rank_support': { title: 'Rütbe Destek — Destek Talebi',     desc: `Merhaba ${user}, rütbe destek talebin kaydedildi. Rütbenle ilgili yaşadığın sorunu detaylıca açıkla, yetkililer inceleyecek.` },
+      'report':       { title: 'Reklam Şikayet — Şikayet Talebi', desc: `Merhaba ${user}, şikayetin kaydedildi. Reklam yapan kişinin Discord/Roblox bilgilerini ve kanıtlarını paylaş.` },
+      'transfer':     { title: 'Geri Dönüş — Geri Dönüş Talebi',  desc: `Merhaba ${user}, geri dönüş talebin kaydedildi. Detayları yetkili ile paylaşabilirsin.` }
     };
-    const info = categoryInfo[category] || { emoji: '🎫', title: 'Destek Talebi', desc: `Merhaba ${user}, talebin kaydedildi.` };
+    const info = categoryInfo[category] || { title: 'Destek Talebi', desc: `Merhaba ${user}, talebin kaydedildi.` };
 
     const embed = new EmbedBuilder()
-      .setTitle(`${info.emoji} ${info.title}`)
+      .setTitle(info.title)
       .setDescription(info.desc)
-      .addFields({ name: '👤 Kullanıcı', value: user.username, inline: true })
+      .addFields({ name: 'Kullanıcı', value: user.username, inline: true })
       .setColor(0x2B2D31)
       .setFooter({ text: 'Imperial Forces Başkomutanlığı Destek Sistemi' })
       .setTimestamp();
 
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('close_ticket').setLabel('Ticket\'ı Kapat').setEmoji('🔒').setStyle(ButtonStyle.Danger),
-      new ButtonBuilder().setCustomId('add_user_to_ticket').setLabel('Kullanıcı Ekle').setEmoji('👤').setStyle(ButtonStyle.Secondary)
+      new ButtonBuilder().setCustomId('close_ticket').setLabel('Ticket\'ı Kapat').setStyle(ButtonStyle.Danger),
+      new ButtonBuilder().setCustomId('add_user_to_ticket').setLabel('Kullanıcı Ekle').setStyle(ButtonStyle.Secondary)
     );
 
     const supportMention = config.supportRoleIds && config.supportRoleIds.length > 0 
