@@ -2595,9 +2595,9 @@ async function handleTicketCategorySelect(interaction) {
       .setTimestamp();
 
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('close_ticket').setLabel('Ticket\'ı Kapat').setEmoji({ id: '1503099088579596379', name: 'ban_1399482731112562728' }).setStyle(ButtonStyle.Danger),
-      new ButtonBuilder().setCustomId('claim_ticket').setLabel('Bileti Üstlen').setEmoji({ id: '1503099479908155392', name: 'etiket_1358783264218812486' }).setStyle(ButtonStyle.Success),
-      new ButtonBuilder().setCustomId('add_user_to_ticket').setLabel('Kullanıcı Ekle').setEmoji({ id: '1503099307580981248', name: 'member' }).setStyle(ButtonStyle.Secondary)
+      new ButtonBuilder().setCustomId('close_ticket').setLabel('Ticket\'ı Kapat').setStyle(ButtonStyle.Danger),
+      new ButtonBuilder().setCustomId('claim_ticket').setLabel('Bileti Üstlen').setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId('add_user_to_ticket').setLabel('Kullanıcı Ekle').setStyle(ButtonStyle.Secondary)
     );
 
     const supportMention = config.supportRoleIds && config.supportRoleIds.length > 0 
