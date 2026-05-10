@@ -12,7 +12,10 @@ const {
   PermissionFlagsBits,
   StringSelectMenuBuilder,
   ActivityType,
-  AttachmentBuilder
+  AttachmentBuilder,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle
 } = require('discord.js');
 const { joinVoiceChannel } = require('@discordjs/voice');
 const fs = require('fs');
@@ -977,8 +980,8 @@ client.on('interactionCreate', async (interaction) => {
         await handleTicketMenuButton(interaction);
       } else if (interaction.customId === 'close_ticket') {
         await handleTicketClose(interaction);
-      } else if (interaction.customId === 'claim_ticket') {
-        await handleTicketClaim(interaction);
+      } else if (interaction.customId === 'add_user_to_ticket') {
+        await handleAddUserToTicket(interaction);
       } else if (interaction.customId.startsWith('verify_link_')) {
         await handleVerificationButton(interaction);
       } else if (interaction.customId.startsWith('rate_ticket_')) {
@@ -999,6 +1002,16 @@ client.on('interactionCreate', async (interaction) => {
       }
     } catch (error) {
       console.error('Select menu hatası:', error);
+      await interaction.reply({ content: 'HATA: Bir hata oluştu!', flags: 64 }).catch(() => {});
+    }
+  }
+  else if (interaction.isModalSubmit()) {
+    try {
+      if (interaction.customId === 'add_user_modal') {
+        await handleAddUserModalSubmit(interaction);
+      }
+    } catch (error) {
+      console.error('Modal hatası:', error);
       await interaction.reply({ content: 'HATA: Bir hata oluştu!', flags: 64 }).catch(() => {});
     }
   }
@@ -2563,15 +2576,27 @@ async function handleTicketCategorySelect(interaction) {
       ],
     });
 
+    const categoryInfo = {
+      'mod':          { emoji: '🛡️', title: 'Moderatör — Destek Talebi',      desc: `Merhaba ${user}, destek talebin kaydedildi. Sorununu detaylı şekilde yaz, ekip en kısa sürede ilgilenecek.` },
+      'gamepass':     { emoji: '🏆', title: 'Gamepass — Satın Alma Talebi',    desc: `Merhaba ${user}, gamepass alımı talebiniz kaydedildi. Almak istediğin paketi ve ödeme detaylarını yetkili ile paylaş.` },
+      'game_support': { emoji: '🎮', title: 'Oyun Destek — Destek Talebi',     desc: `Merhaba ${user}, oyun destek talebin kaydedildi. Yaşadığın sorunu mümkün olduğunca detaylı anlat, ekip en kısa sürede ilgilenecek.` },
+      'rank_support': { emoji: '⭐', title: 'Rütbe Destek — Destek Talebi',    desc: `Merhaba ${user}, rütbe destek talebin kaydedildi. Rütbenle ilgili yaşadığın sorunu detaylıca açıkla, yetkililer inceleyecek.` },
+      'report':       { emoji: '⚠️', title: 'Reklam Şikayet — Şikayet Talebi', desc: `Merhaba ${user}, şikayetin kaydedildi. Reklam yapan kişinin Discord/Roblox bilgilerini ve kanıtlarını paylaş.` },
+      'transfer':     { emoji: '🔄', title: 'Geri Dönüş — Geri Dönüş Talebi', desc: `Merhaba ${user}, geri dönüş talebin kaydedildi. Detayları yetkili ile paylaşabilirsin.` }
+    };
+    const info = categoryInfo[category] || { emoji: '🎫', title: 'Destek Talebi', desc: `Merhaba ${user}, talebin kaydedildi.` };
+
     const embed = new EmbedBuilder()
-      .setTitle('Bilet Açıldı')
-      .setDescription(`Merhaba ${user}, **${categoryNames[category]}** kategorisinde bir bilet açtınız. Yetkililer en kısa sürede size yardımcı olacaktır.`)
-      .setColor(0x5865F2)
+      .setTitle(`${info.emoji} ${info.title}`)
+      .setDescription(info.desc)
+      .addFields({ name: '👤 Kullanıcı', value: user.username, inline: true })
+      .setColor(0x2B2D31)
+      .setFooter({ text: 'Imperial Forces Başkomutanlığı Destek Sistemi' })
       .setTimestamp();
 
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('close_ticket').setLabel('Bileti Kapat').setStyle(ButtonStyle.Danger),
-      new ButtonBuilder().setCustomId('claim_ticket').setLabel('Bileti Üstlen').setStyle(ButtonStyle.Success)
+      new ButtonBuilder().setCustomId('close_ticket').setLabel('Ticket\'ı Kapat').setEmoji('🔒').setStyle(ButtonStyle.Danger),
+      new ButtonBuilder().setCustomId('add_user_to_ticket').setLabel('Kullanıcı Ekle').setEmoji('👤').setStyle(ButtonStyle.Secondary)
     );
 
     const supportMention = config.supportRoleIds && config.supportRoleIds.length > 0 
@@ -2701,6 +2726,42 @@ async function handleTicketClaim(interaction) {
 }
 
 
+
+async function handleAddUserToTicket(interaction) {
+  const modal = new ModalBuilder()
+    .setCustomId('add_user_modal')
+    .setTitle('Kullanıcı Ekle');
+
+  const input = new TextInputBuilder()
+    .setCustomId('user_id_input')
+    .setLabel('Eklenecek kullanıcının Discord ID\'si')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('Örn: 123456789012345678')
+    .setRequired(true);
+
+  modal.addComponents(new ActionRowBuilder().addComponents(input));
+  await interaction.showModal(modal);
+}
+
+async function handleAddUserModalSubmit(interaction) {
+  const userId = interaction.fields.getTextInputValue('user_id_input').trim();
+  const channel = interaction.channel;
+
+  let member;
+  try {
+    member = await interaction.guild.members.fetch(userId);
+  } catch {
+    return interaction.reply({ content: 'HATA: Geçersiz kullanıcı ID\'si veya kullanıcı sunucuda bulunamadı!', flags: 64 });
+  }
+
+  await channel.permissionOverwrites.edit(member.id, {
+    ViewChannel: true,
+    SendMessages: true,
+    ReadMessageHistory: true
+  });
+
+  await interaction.reply({ content: `✓ ${member} ticket'a eklendi.`, flags: 64 });
+}
 
 async function handleBan(interaction) {
   // Config'deki admin rollerini kontrol et (Virgüllü format desteğiyle)
