@@ -2479,7 +2479,8 @@ async function handleTicketSetup(interaction) {
     return interaction.reply({ content: 'Bu komutu kullanma yetkiniz yok!', flags: 64 });
   }
 
-  const imageUrl = config.ticketImageUrl || '';
+  const imageUrl = config.ticketImageUrl ||
+    (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}/ticket.png` : '');
   
   const embed = new EmbedBuilder()
     .setTitle('Turkish Armed Forces')
@@ -2998,6 +2999,7 @@ if (typeof app === 'undefined') {
   var app = express();
   const bodyParser = require('body-parser');
   app.use(bodyParser.json());
+  app.use(express.static('public'));
   app.listen(PORT_NUM, '0.0.0.0', () => {
     console.log(`API listening on port ${PORT_NUM}`);
   });
