@@ -11,7 +11,8 @@ const {
   ChannelType,
   PermissionFlagsBits,
   StringSelectMenuBuilder,
-  ActivityType
+  ActivityType,
+  AttachmentBuilder
 } = require('discord.js');
 const { joinVoiceChannel } = require('@discordjs/voice');
 const fs = require('fs');
@@ -2479,15 +2480,13 @@ async function handleTicketSetup(interaction) {
     return interaction.reply({ content: 'Bu komutu kullanma yetkiniz yok!', flags: 64 });
   }
 
-  const imageUrl = config.ticketImageUrl ||
-    (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}/ticket.png` : '');
-  
+  const ticketImage = new AttachmentBuilder('./public/ticket43.png', { name: 'ticket.png' });
+
   const embed = new EmbedBuilder()
     .setTitle('Turkish Armed Forces')
     .setDescription('**Moderatör Bileti**\nDiscord ile ilgili yaşanan sorunlar ve yardım talepleri için bu bileti seç.\n\n**Gamepass Bileti**\nRobux ile rütbe, branş üyeliği alımında bu bilet türünü seç.\n\n**Oyun Destek Bileti**\nOyunumuzda yaşanan sorunlar hakkında yardım almak için bu bileti seç.\n\n**Rütbe Destek Bileti**\nRütbeniz hakkında yaşanan sorunlar hakkında yardım almak için bu bileti seç.(Rütbem Gitti)\n\n**Reklam Destek Bileti**\nDiscord veya Oyun üzerinde reklam yapan insanları şikayet edebilmek için bu bilet türünü seç.\n\n**Geri Dönüş&Transfer Bileti**\nGeri dönüş veya transfer işlemleri hakkında destek almak için bu bileti seç.')
+    .setImage('attachment://ticket.png')
     .setColor(0x2B2D31);
-
-  if (imageUrl) embed.setImage(imageUrl);
   
   const menu = new StringSelectMenuBuilder()
     .setCustomId('ticket_category')
@@ -2503,7 +2502,7 @@ async function handleTicketSetup(interaction) {
 
   const row = new ActionRowBuilder().addComponents(menu);
 
-  await interaction.channel.send({ embeds: [embed], components: [row] });
+  await interaction.channel.send({ embeds: [embed], components: [row], files: [ticketImage] });
   await interaction.reply({ content: '✓', flags: 64 });
   await interaction.deleteReply();
 }
