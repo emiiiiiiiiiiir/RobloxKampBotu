@@ -5,7 +5,7 @@
   "adminRoleIds": ["1420883077202182195,1454171601737224344"],
   "allowedRanks": [160,165,170],
   "maxRankCanAssign": 165,
-  "rankYetkiliRutbeler": [160, 165, 170, 155, 150, 253, 255],
+  "rankYetkiliRutbeler": [160, 165, 170, 155, 150, 253, 255, 254],
   "branchGroups": {
     "DKK": "1095945595",
     "KKK": "522711335",
@@ -36,7 +36,7 @@
     "groupId": "279222901",
     "gameId": "75736168735910",
     "adminRoleIds": [""],
-    "rankYetkiliRutbeler": [160, 165, 170, 155, 253, 255],
+    "rankYetkiliRutbeler": [160, 165, 170, 155, 253, 255, 254],
     "branchGroups": {
       "ÖKK": "702077670",
       "DKK": "1095945595",
