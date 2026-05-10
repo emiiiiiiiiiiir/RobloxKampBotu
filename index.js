@@ -2484,7 +2484,7 @@ async function handleTicketSetup(interaction) {
 
   const embed = new EmbedBuilder()
     .setTitle('Turkish Armed Forces')
-    .setDescription('**Moderatör Bileti**\nDiscord ile ilgili yaşanan sorunlar ve yardım talepleri için bu bileti seç.\n\n**Gamepass Bileti**\nRobux ile rütbe, branş üyeliği alımında bu bilet türünü seç.\n\n**Oyun Destek Bileti**\nOyunumuzda yaşanan sorunlar hakkında yardım almak için bu bileti seç.\n\n**Rütbe Destek Bileti**\nRütbeniz hakkında yaşanan sorunlar hakkında yardım almak için bu bileti seç.(Rütbem Gitti)\n\n**Reklam Destek Bileti**\nDiscord veya Oyun üzerinde reklam yapan insanları şikayet edebilmek için bu bilet türünü seç.\n\n**Geri Dönüş&Transfer Bileti**\nGeri dönüş veya transfer işlemleri hakkında destek almak için bu bileti seç.')
+    .setDescription('**Moderatör Bileti**\nDiscord ile ilgili yaşanan sorunlar ve yardım talepleri için bu bileti seç.\n\n**Gamepass Bileti**\nRobux ile rütbe, branş üyeliği alımında bu bilet türünü seç.\n\n**Oyun Destek Bileti**\nOyunumuzda yaşanan sorunlar hakkında yardım almak için bu bileti seç.\n\n**Rütbe Destek Bileti**\nRütbeniz hakkında yaşanan sorunlar hakkında yardım almak için bu bileti seç.(Rütbem Gitti)\n\n**Reklam Destek Bileti**\nDiscord veya Oyun üzerinde reklam yapan insanları şikayet edebilmek için bu bilet türünü seç.\n\n**Geri Dönüş Bileti**\nGeri dönüş işlemleri hakkında destek almak için bu bileti seç.')
     .setImage('attachment://ticket.png')
     .setColor(0x2B2D31);
   
@@ -2497,7 +2497,7 @@ async function handleTicketSetup(interaction) {
       { label: 'Oyun Destek Bileti', value: 'game_support', description: 'Oyunumuzda yaşanan sorunlar için', emoji: { name: 'aek_ynalgelis', id: '1420057691077873736' } },
       { label: 'Rütbe Destek Bileti', value: 'rank_support', description: 'Rütbeniz hakkında yaşanan sorunlar için', emoji: { name: 'rutbe', id: '1418328091339788378' } },
       { label: 'Reklam Destek Bileti', value: 'report', description: 'Reklam yapan kişileri şikayet etmek için', emoji: { name: 'uyarii', id: '1421639888067104907' } },
-      { label: 'Geri Dönüş & Transfer Bileti', value: 'transfer', description: 'Geri dönüş veya transfer işlemleri için', emoji: { name: 'personel', id: '1420217336136339537' } }
+      { label: 'Geri Dönüş Bileti', value: 'transfer', description: 'Geri dönüş işlemleri için', emoji: { name: 'personel', id: '1420217336136339537' } }
     ]);
 
   const row = new ActionRowBuilder().addComponents(menu);
@@ -2517,7 +2517,7 @@ async function handleTicketMenuButton(interaction) {
       { label: 'Oyun Destek Bileti', value: 'game_support', description: 'Oyun içi yardım' },
       { label: 'Rütbe Destek Bileti', value: 'rank_support', description: 'Rütbe sorunları' },
       { label: 'Reklam Destek Bileti', value: 'report', description: 'Reklam şikayetleri' },
-      { label: 'Geri Dönüş&Transfer Bileti', value: 'transfer', description: 'Geri dönüş veya transfer' }
+      { label: 'Geri Dönüş Bileti', value: 'transfer', description: 'Geri dönüş işlemleri için' }
     ]);
 
   await interaction.reply({ content: 'Lütfen talep kategorisini seçin:', components: [new ActionRowBuilder().addComponents(menu)], flags: 64 });
@@ -2534,7 +2534,7 @@ async function handleTicketCategorySelect(interaction) {
     'game_support': 'Oyun Destek',
     'rank_support': 'Rütbe Destek',
     'report': 'Reklam Şikayet',
-    'transfer': 'Geri Dönüş/Transfer'
+    'transfer': 'Geri Dönüş'
   };
 
   const channelName = `bilet-${category}-${user.username}`.toLowerCase();
