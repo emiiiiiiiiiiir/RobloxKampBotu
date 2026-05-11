@@ -2537,6 +2537,8 @@ async function handleTicketMenuButton(interaction) {
 }
 
 async function handleTicketCategorySelect(interaction) {
+  await interaction.deferReply({ ephemeral: true });
+
   const category = interaction.values[0];
   const guild = interaction.guild;
   const user = interaction.user;
@@ -2607,7 +2609,7 @@ async function handleTicketCategorySelect(interaction) {
       : `<@&${config.adminRoleIds[0].split(',')[0].trim()}>`;
 
     await channel.send({ content: `${user} | ${supportMention}`, embeds: [embed], components: [row] });
-    await interaction.reply({ content: `Biletiniz açıldı: ${channel}`, flags: 64 });
+    await interaction.editReply({ content: `Biletiniz açıldı: ${channel}` });
     
     // Log kanalına mesaj gönder
     if (config.ticketLogChannelId) {
@@ -2627,7 +2629,7 @@ async function handleTicketCategorySelect(interaction) {
     }
   } catch (error) {
     console.error('Ticket açma hatası:', error);
-    await interaction.reply({ content: 'HATA: Bilet kanalı oluşturulamadı!', flags: 64 });
+    await interaction.editReply({ content: 'HATA: Bilet kanalı oluşturulamadı!' });
   }
 }
 
