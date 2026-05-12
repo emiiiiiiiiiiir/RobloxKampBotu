@@ -395,7 +395,8 @@ class RobloxAPI {
           console.log('[banUserFromGame] Cloud V2 (API Key) Başarılı');
           return { success: true };
         } catch (err) {
-          console.warn('[banUserFromGame] API Key denemesi başarısız, Cookie deneniyor...');
+          console.warn('[banUserFromGame] API Key denemesi başarısız:', err.response?.status, JSON.stringify(err.response?.data || err.message));
+          console.warn('[banUserFromGame] Cookie deneniyor...');
         }
       }
 
