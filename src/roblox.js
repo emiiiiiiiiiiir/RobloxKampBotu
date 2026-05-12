@@ -375,14 +375,13 @@ class RobloxAPI {
       // Yöntem 1: API Key varsa Cloud V2 kullan (En güvenilir yol)
       if (apiKey) {
         try {
-          const response = await axios.post(
-            `https://apis.roblox.com/cloud/v2/universes/${universeId}/user-restrictions/${userId}:restrict`,
+          const response = await axios.patch(
+            `https://apis.roblox.com/cloud/v2/universes/${universeId}/user-restrictions/${userId}`,
             {
               gameJoinRestriction: {
                 active: true,
-                reason: reason,
-                displayReason: reason,
-                duration: null
+                privateReason: reason,
+                displayReason: reason
               }
             },
             {
