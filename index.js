@@ -2039,13 +2039,9 @@ function saveGameBans(bans) {
 }
 
 async function handleGameBan(interaction) {
-  const hasAdminRole = getGuildConfig(interaction.guild).adminRoleIds.some(idStr => {
-    const ids = idStr.split(',').map(s => s.trim());
-    return ids.some(id => interaction.member.roles.cache.has(id));
-  });
-
-  if (!hasAdminRole) {
-    return interaction.reply({ embeds: [createErrorEmbed('Bu komutu kullanma yetkiniz yok!')], ephemeral: true });
+  const perm = await checkRankPermissions(interaction.user.id, undefined, interaction.guild);
+  if (!perm.allowed) {
+    return interaction.reply({ embeds: [perm.embed], ephemeral: true });
   }
 
   await interaction.deferReply();
@@ -2092,13 +2088,9 @@ async function handleGameBan(interaction) {
 }
 
 async function handleGameUnban(interaction) {
-  const hasAdminRole = getGuildConfig(interaction.guild).adminRoleIds.some(idStr => {
-    const ids = idStr.split(',').map(s => s.trim());
-    return ids.some(id => interaction.member.roles.cache.has(id));
-  });
-
-  if (!hasAdminRole) {
-    return interaction.reply({ embeds: [createErrorEmbed('Bu komutu kullanma yetkiniz yok!')], ephemeral: true });
+  const perm = await checkRankPermissions(interaction.user.id, undefined, interaction.guild);
+  if (!perm.allowed) {
+    return interaction.reply({ embeds: [perm.embed], ephemeral: true });
   }
 
   await interaction.deferReply();
