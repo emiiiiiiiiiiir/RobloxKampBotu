@@ -2120,8 +2120,8 @@ async function handleGameUnban(interaction) {
     let success = false;
 
     if (apiKey) {
-      await axios.post(
-        `https://apis.roblox.com/cloud/v2/universes/${universeId}/user-restrictions/${userId}:restrict`,
+      await axios.patch(
+        `https://apis.roblox.com/cloud/v2/universes/${universeId}/user-restrictions/${userId}`,
         { gameJoinRestriction: { active: false } },
         { headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' } }
       );
