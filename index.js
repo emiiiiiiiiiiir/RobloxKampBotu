@@ -2059,6 +2059,13 @@ async function handleGameBan(interaction) {
     return interaction.editReply({ embeds: [createErrorEmbed('Kullanıcı bulunamadı!')] });
   }
 
+  // Hedefin grubundaki rütbesini kontrol et
+  const guildCfg = getGuildConfig(interaction.guild);
+  const targetRankInfo = await robloxAPI.getUserRankInGroup(userId, guildCfg.groupId);
+  if (targetRankInfo && perm.managerRank.rank !== 255 && targetRankInfo.rank >= perm.managerRank.rank) {
+    return interaction.editReply({ embeds: [createErrorEmbed(`Sizden üst veya aynı rütbedeki birini yasaklayamazsınız! (Hedef: ${targetRankInfo.name})`)] });
+  }
+
   const universeId = await robloxAPI.getUniverseId(config.gameId);
   if (!universeId) {
     return interaction.editReply({ embeds: [createErrorEmbed('Oyun bulunamadı! gameId\'yi kontrol edin.')] });
