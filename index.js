@@ -51,13 +51,16 @@ const ACTIVE_TICKETS_FILE = './active_tickets.json';
 // Sunucu adına göre doğru grup config'ini döndürür
 function getGuildConfig(guild) {
   const name = guild ? guild.name : '';
-  if (name.includes('ATF')) {
+  if (name.includes('OEF')) {
     return {
-      groupId: config.atf.groupId,
-      gameId: config.atf.gameId,
-      adminRoleIds: config.atf.adminRoleIds || config.adminRoleIds,
-      branchGroups: config.atf.branchGroups || {},
-      rankYetkiliRutbeler: config.atf.rankYetkiliRutbeler || config.rankYetkiliRutbeler || [255]
+      groupId: config.oef.groupId,
+      gameId: config.oef.gameId,
+      adminRoleIds: config.oef.adminRoleIds || config.adminRoleIds,
+      branchGroups: config.oef.branchGroups || {},
+      rankYetkiliRutbeler: config.oef.rankYetkiliRutbeler || config.rankYetkiliRutbeler || [255],
+      ticketCategoryId: config.oef.ticketCategoryId || '',
+      ticketLogChannelId: config.oef.ticketLogChannelId || '',
+      supportRoleIds: config.oef.supportRoleIds && config.oef.supportRoleIds.length > 0 ? config.oef.supportRoleIds : (config.oef.adminRoleIds || config.adminRoleIds)
     };
   }
   return {
@@ -65,7 +68,10 @@ function getGuildConfig(guild) {
     gameId: config.gameId,
     adminRoleIds: config.adminRoleIds,
     branchGroups: config.branchGroups || {},
-    rankYetkiliRutbeler: config.rankYetkiliRutbeler || [255]
+    rankYetkiliRutbeler: config.rankYetkiliRutbeler || [255],
+    ticketCategoryId: config.ticketCategoryId || '',
+    ticketLogChannelId: config.ticketLogChannelId || '',
+    supportRoleIds: config.supportRoleIds && config.supportRoleIds.length > 0 ? config.supportRoleIds : config.adminRoleIds
   };
 }
 
@@ -2552,12 +2558,13 @@ async function handleTicketCategorySelect(interaction) {
   };
 
   const channelName = `bilet-${category}-${user.username}`.toLowerCase();
-  
+  const guildCfg = getGuildConfig(guild);
+
   try {
     const channel = await guild.channels.create({
       name: channelName,
       type: ChannelType.GuildText,
-      parent: config.ticketCategoryId || null,
+      parent: guildCfg.ticketCategoryId || null,
       permissionOverwrites: [
         {
           id: guild.id,
@@ -2567,7 +2574,7 @@ async function handleTicketCategorySelect(interaction) {
           id: user.id,
           allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
         },
-        ...config.adminRoleIds.map(roleIdStr => {
+        ...guildCfg.adminRoleIds.map(roleIdStr => {
           const ids = roleIdStr.split(',').map(s => s.trim());
           return ids.map(id => ({
             id: id,
@@ -2601,18 +2608,18 @@ async function handleTicketCategorySelect(interaction) {
       new ButtonBuilder().setCustomId('add_user_to_ticket').setLabel('Kullanıcı Ekle').setStyle(ButtonStyle.Secondary)
     );
 
-    const supportMention = config.supportRoleIds && config.supportRoleIds.length > 0 
-      ? config.supportRoleIds.map(roleIdStr => {
+    const supportMention = guildCfg.supportRoleIds && guildCfg.supportRoleIds.length > 0
+      ? guildCfg.supportRoleIds.map(roleIdStr => {
           return roleIdStr.split(',').map(id => `<@&${id.trim()}>`).join(' ');
         }).join(' ')
-      : `<@&${config.adminRoleIds[0].split(',')[0].trim()}>`;
+      : `<@&${guildCfg.adminRoleIds[0].split(',')[0].trim()}>`;
 
     await channel.send({ content: `${user} | ${supportMention}`, embeds: [embed], components: [row] });
     await interaction.editReply({ content: `Biletiniz açıldı: ${channel}` });
     
     // Log kanalına mesaj gönder
-    if (config.ticketLogChannelId) {
-      const logChannel = guild.channels.cache.get(config.ticketLogChannelId);
+    if (guildCfg.ticketLogChannelId) {
+      const logChannel = guild.channels.cache.get(guildCfg.ticketLogChannelId);
       if (logChannel) {
         const logEmbed = new EmbedBuilder()
           .setTitle('Yeni Bilet Açıldı')
@@ -2655,8 +2662,9 @@ async function handleTicketClose(interaction) {
   }
 
   // Log kanalına transcript gönder
-  if (config.ticketLogChannelId) {
-    const logChannel = interaction.guild.channels.cache.get(config.ticketLogChannelId);
+  const guildCfgClose = getGuildConfig(interaction.guild);
+  if (guildCfgClose.ticketLogChannelId) {
+    const logChannel = interaction.guild.channels.cache.get(guildCfgClose.ticketLogChannelId);
     if (logChannel) {
       const logEmbed = new EmbedBuilder()
         .setTitle('Bilet Kapatıldı')
