@@ -2498,6 +2498,9 @@ async function handleTicketSetup(interaction) {
     return interaction.reply({ content: 'Bu komutu kullanma yetkiniz yok!', flags: 64 });
   }
 
+  // Önce Discord'a cevap ver, zaman aşımı olmasın
+  await interaction.reply({ content: '✓ Ticket paneli hazırlanıyor...', flags: 64 });
+
   const ticketImage = new AttachmentBuilder('./public/ticket43.png', { name: 'ticket.png' });
 
   const embed = new EmbedBuilder()
@@ -2521,7 +2524,6 @@ async function handleTicketSetup(interaction) {
   const row = new ActionRowBuilder().addComponents(menu);
 
   await interaction.channel.send({ embeds: [embed], components: [row], files: [ticketImage] });
-  await interaction.reply({ content: '✓', flags: 64 });
   await interaction.deleteReply();
 }
 

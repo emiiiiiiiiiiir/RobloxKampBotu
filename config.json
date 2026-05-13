@@ -37,9 +37,9 @@
     "gameId": "75736168735910",
     "adminRoleIds": [""],
     "rankYetkiliRutbeler": [160, 165, 170, 155, 253, 255, 254],
-    "ticketCategoryId": "",
-    "ticketLogChannelId": "",
-    "supportRoleIds": [],
+    "ticketCategoryId": "1501307632621981766",
+    "ticketLogChannelId": "1504163417542627329",
+    "supportRoleIds": ["1503845348282470420"],
     "branchGroups": {
       "ÖKK": "702077670",
       "DKK": "1095945595",
