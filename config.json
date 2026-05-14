@@ -24,6 +24,8 @@
   },
   "webhookUrl": "https://discord.com/api/webhooks/1501272627954847918/s2t5-ueahGR7MFfu_SQJDXhAtl6LvRoS0dJkdRQ7YrEZ_jqLQoEPLp3LbezlogiWLKPY",
   "branchWebhookUrl": "https://discord.com/api/webhooks/1501272630659911722/FkyjNie90W4hEfTR0bPQlRrZ9JWdMSrcbOW1A1tBG8kIH49Ly3SRpycpQOAC2-0leZSp",
+  "gameBanWebhookUrl": "https://discord.com/api/webhooks/1504552934430605363/ZQB0I6USt0RB47oaM3UJ7wclOQlqRBBBIs4yKSIWZ4Bqjt_U4kItRB1PASdsdJA9X39q",
+  "tamYasakWebhookUrl": "https://discord.com/api/webhooks/1504552920547459260/7cpA-91o9AC-hVuSmTLYlLz6-QJ6YAadKzCeIo5Exh_JyVKuTBZWL4zQPcn4ROQlxX8-",
   "ticketCategoryId": "1498795853090132098",
   "ticketLogChannelId": "1498796077497712911",
   "supportRoleIds": ["1454171601737224344"],

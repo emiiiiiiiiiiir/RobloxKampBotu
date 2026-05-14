@@ -331,6 +331,57 @@ async function sendBranchRequestWebhook(data) {
   }
 }
 
+async function sendGameBanWebhook(data) {
+  if (!config.gameBanWebhookUrl) return;
+  try {
+    const kaldirildimi = data.type === 'unban';
+    const title = kaldirildimi ? 'Oyun Yasağı Kaldırıldı' : 'Oyun Yasağı Verildi';
+    const color = kaldirildimi ? 0x57F287 : 0xED4245;
+    let description = kaldirildimi
+      ? `**${data.manager}**, **${data.targetUser}** adlı kullanıcının oyun yasağını kaldırmıştır.`
+      : `**${data.manager}**, **${data.targetUser}** adlı kullanıcıyı oyundan yasaklamıştır.`;
+    if (data.reason) description += `\n\n**Sebep:** ${data.reason}`;
+    const embed = {
+      title,
+      description,
+      color,
+      timestamp: new Date().toISOString(),
+      footer: { text: 'Imperial Forces / emir_1881' }
+    };
+    await axios.post(config.gameBanWebhookUrl, { embeds: [embed] });
+  } catch (error) {
+    console.error('Oyun yasak webhook hatası:', error.message);
+  }
+}
+
+async function sendTamYasakWebhook(data) {
+  if (!config.tamYasakWebhookUrl) return;
+  try {
+    const kaldirildimi = data.type === 'unban';
+    const title = kaldirildimi ? 'Tam Yasak Kaldırıldı' : 'Tam Yasak Verildi';
+    const color = kaldirildimi ? 0x57F287 : 0xED4245;
+    let description = kaldirildimi
+      ? `**${data.manager}**, **${data.targetUser}** adlı kullanıcının tüm sunuculardaki yasağını kaldırmıştır.`
+      : `**${data.manager}**, **${data.targetUser}** adlı kullanıcıyı tüm sunuculardan yasaklamıştır.`;
+    if (data.reason) description += `\n\n**Sebep:** ${data.reason}`;
+    if (data.successGuilds && data.successGuilds.length > 0) {
+      description += kaldirildimi
+        ? `\n\n**Yasağın Kaldırıldığı Sunucular**\n${data.successGuilds.map(n => `• ${n}`).join('\n')}`
+        : `\n\n**Yasaklanan Sunucular**\n${data.successGuilds.map(n => `• ${n}`).join('\n')}`;
+    }
+    const embed = {
+      title,
+      description,
+      color,
+      timestamp: new Date().toISOString(),
+      footer: { text: 'Imperial Forces / emir_1881' }
+    };
+    await axios.post(config.tamYasakWebhookUrl, { embeds: [embed] });
+  } catch (error) {
+    console.error('Tam yasak webhook hatası:', error.message);
+  }
+}
+
 async function isUserInMainGroup(discordUserId) {
   const robloxUsername = getLinkedRobloxUsername(discordUserId);
   if (!robloxUsername) return true;
@@ -2094,6 +2145,7 @@ async function handleGameBan(interaction) {
       .setDescription(`İşlem başarıyla tamamlandı\n\n**${robloxNick}** adlı kullanıcı oyundan yasaklandı.\n\n**Sebep**\n${reason}`)
       .setColor(0x57F287);
     await interaction.editReply({ embeds: [embed] });
+    await sendGameBanWebhook({ type: 'ban', manager: interaction.user.username, targetUser: robloxNick, reason });
   } else {
     const errMsg = result?.error || 'Bilinmeyen hata';
     await interaction.editReply({ embeds: [createErrorEmbed(`Yasaklama başarısız! ${errMsg}`)] });
@@ -2149,6 +2201,7 @@ async function handleGameUnban(interaction) {
         .setDescription(`İşlem başarıyla tamamlandı\n\n**${robloxNick}** adlı kullanıcının oyun yasağı kaldırıldı.`)
         .setColor(0x57F287);
       await interaction.editReply({ embeds: [embed] });
+      await sendGameBanWebhook({ type: 'unban', manager: interaction.user.username, targetUser: robloxNick });
     }
   } catch (error) {
     await interaction.editReply({ embeds: [createErrorEmbed(`Yasak kaldırılamadı! ${error.response?.data?.errors?.[0]?.message || error.message}`)] });
@@ -2837,6 +2890,7 @@ async function handleBan(interaction) {
       .setColor(0x57F287);
     
     await interaction.editReply({ embeds: [embed] });
+    await sendTamYasakWebhook({ type: 'ban', manager: interaction.user.username, targetUser: bannedUserTag, reason, successGuilds });
   } catch (error) {
     console.error('Yasaklama hatası:', error);
     await interaction.editReply({ embeds: [createErrorEmbed('Kullanıcı yasaklanamadı! Kullanıcı ID\'sini kontrol edin.')] });
@@ -2892,6 +2946,7 @@ async function handleUnban(interaction) {
       .setColor(0x57F287);
     
     await interaction.editReply({ embeds: [embed] });
+    await sendTamYasakWebhook({ type: 'unban', manager: interaction.user.username, targetUser: discordUserId, reason, successGuilds });
   } catch (error) {
     console.error('Yasak kaldırma hatası:', error);
     await interaction.editReply({ embeds: [createErrorEmbed('Yasak kaldırılamadı! Kullanıcı ID\'sini kontrol edin.')] });
