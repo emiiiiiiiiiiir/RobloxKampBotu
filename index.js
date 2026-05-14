@@ -2174,37 +2174,38 @@ async function handleGameUnban(interaction) {
   try {
     const apiKey = process.env.ROBLOX_API_KEY;
     const cookie = process.env.ROBLOX_COOKIE;
-    let success = false;
 
     if (apiKey) {
+      console.log(`[unbanUserFromGame] Cloud V2 deneniyor - UniverseId: ${universeId}, UserId: ${userId}`);
       await axios.patch(
         `https://apis.roblox.com/cloud/v2/universes/${universeId}/user-restrictions/${userId}`,
-        { gameJoinRestriction: { active: false } },
+        { gameJoinRestriction: { active: false, privateReason: '', displayReason: '' } },
         { headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' } }
       );
-      success = true;
+      console.log('[unbanUserFromGame] Cloud V2 başarılı');
     } else if (cookie) {
       const csrfToken = await robloxAPI.getCsrfToken(cookie);
       await axios.delete(
         `https://apis.roblox.com/game-auth/v1/games/${universeId}/bans/user/${userId}`,
         { headers: { 'Cookie': `.ROBLOSECURITY=${cookie}`, 'X-CSRF-TOKEN': csrfToken } }
       );
-      success = true;
+    } else {
+      return interaction.editReply({ embeds: [createErrorEmbed('ROBLOX_API_KEY veya ROBLOX_COOKIE bulunamadı!')] });
     }
 
-    if (success) {
-      const bans = loadGameBans();
-      delete bans[robloxNick.toLowerCase()];
-      saveGameBans(bans);
+    const bans = loadGameBans();
+    delete bans[robloxNick.toLowerCase()];
+    saveGameBans(bans);
 
-      const embed = new EmbedBuilder()
-        .setDescription(`İşlem başarıyla tamamlandı\n\n**${robloxNick}** adlı kullanıcının oyun yasağı kaldırıldı.`)
-        .setColor(0x57F287);
-      await interaction.editReply({ embeds: [embed] });
-      await sendGameBanWebhook({ type: 'unban', manager: interaction.user.username, targetUser: robloxNick });
-    }
+    const embed = new EmbedBuilder()
+      .setDescription(`İşlem başarıyla tamamlandı\n\n**${robloxNick}** adlı kullanıcının oyun yasağı kaldırıldı.`)
+      .setColor(0x57F287);
+    await interaction.editReply({ embeds: [embed] });
+    await sendGameBanWebhook({ type: 'unban', manager: interaction.user.username, targetUser: robloxNick });
   } catch (error) {
-    await interaction.editReply({ embeds: [createErrorEmbed(`Yasak kaldırılamadı! ${error.response?.data?.errors?.[0]?.message || error.message}`)] });
+    console.error('[unbanUserFromGame] Hata:', error.response?.status, JSON.stringify(error.response?.data || error.message));
+    const errMsg = error.response?.data?.message || error.response?.data?.errors?.[0]?.message || error.message;
+    await interaction.editReply({ embeds: [createErrorEmbed(`Yasak kaldırılamadı! ${errMsg}`)] });
   }
 }
 
